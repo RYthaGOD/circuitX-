@@ -1,0 +1,19 @@
+[package]
+name = "yusd"
+version = "0.1.0"
+edition = "2024_07"
+
+[[target.starknet-contract]]
+sierra = true
+casm = true
+allowed-libfuncs-list.name = "experimental"
+
+[cairo]
+sierra-replace-ids = true
+
+[dependencies]
+starknet = ">=2.3.0"
+
+[tool.snforge]
+exit_first = false
+

@@ -1,0 +1,49 @@
+# Prover inputs for private perp trading circuit
+# This file contains ALL parameters required by main() function
+# Unused parameters for specific actions can be set to 0
+
+# Action: 0 = open_market, 1 = open_limit, 2 = open_twap, 3 = close, 4 = close_tp, 5 = close_sl, 6 = liquidation
+action = "0"
+
+# Private inputs (common - always needed)
+private_margin = "200"
+private_position_size = "2000"
+private_entry_price = "50000"
+private_trader_secret = "99999"
+
+# Public inputs (common - always needed)
+market_id = "1"
+is_long = "1"
+oracle_price = "50000"
+current_time = "1000000"
+price_timestamp = "1000000"
+num_sources = "5"
+min_sources = "3"
+max_price_age = "60"
+
+# Additional inputs - only some are used depending on action
+# For open_market (action=0): price_impact, execution_price, acceptable_slippage, leverage, min_margin_ratio, max_position_size
+price_impact = "50"
+execution_price = "50050"
+acceptable_slippage = "100"  # 1% in basis points
+leverage = "10"
+min_margin_ratio = "5"  # 5%
+max_position_size = "10000"
+
+# For limit orders (action=1): trigger_price is also needed
+trigger_price = "0"
+
+# For close orders (action=3,4,5): current_price, closing_size, trading_fee_bps
+# For take profit (action=4): take_profit_price
+# For stop loss (action=5): stop_loss_price
+current_price = "0"
+closing_size = "0"
+take_profit_price = "0"
+stop_loss_price = "0"
+trading_fee_bps = "0"
+
+# For TWAP orders (action=2): twap_price, twap_duration, chunk_index, total_chunks
+twap_price = "0"
+twap_duration = "0"
+chunk_index = "0"
+total_chunks = "0"
