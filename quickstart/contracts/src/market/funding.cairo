@@ -34,8 +34,6 @@ pub struct FundingRate {
     pub funding_factor_per_size: u256 // Cumulative funding factor per size
 }
 
-pub use FundingRate;
-
 #[starknet::contract]
 mod Funding {
     use private_perp::core::data_store::{IDataStoreDispatcher, IDataStoreDispatcherTrait};
@@ -61,7 +59,7 @@ mod Funding {
     struct Storage {
         data_store: IDataStoreDispatcher,
         event_emitter: IEventEmitterDispatcher,
-        funding_rates: Map<felt252, FundingRate>,
+        funding_rates: Map<felt252, super::FundingRate>,
         funding_factor_per_size: Map<
             (felt252, bool), u256,
         >, // (market_id, is_long) -> cumulative factor
@@ -82,8 +80,8 @@ mod Funding {
 
     #[external(v0)]
     impl FundingImpl of super::IFunding<ContractState> {
-        fn get_funding_rate(self: @ContractState, market_id: felt252) -> FundingRate {
-            let rate = self.funding_rates.read(market_id);
+        fn get_funding_rate(self: @ContractState, market_id: felt252) -> super::FundingRate {
+            let rate: super::FundingRate = self.funding_rates.read(market_id);
             assert(rate.last_updated != 0, 'FUNDING_NOT_INIT');
             rate
         }
@@ -170,7 +168,7 @@ mod Funding {
             self.funding_factor_per_size.write((market_id, false), short_factor);
 
             // Update funding rate struct
-            let funding_rate = FundingRate {
+            let funding_rate: super::FundingRate = super::FundingRate {
                 rate_per_second,
                 last_updated: current_time,
                 long_open_interest: long_oi,
@@ -185,13 +183,13 @@ mod Funding {
             self.funding_rates.write(market_id, funding_rate);
             self.last_funding_update.write(market_id, current_time);
 
-            // Emit event
-            self
-                .event_emitter
-                .read()
-                .emit_funding_rate_updated(
-                    market_id, rate_per_second, long_oi, short_oi, current_time,
-                );
+            // TODO: Add emit_funding_rate_updated to event emitter
+            // self
+            //     .event_emitter
+            //     .read()
+            //     .emit_funding_rate_updated(
+            //         market_id, rate_per_second, long_oi, short_oi, current_time,
+            //     );
         }
 
         fn get_funding_fee_for_position(

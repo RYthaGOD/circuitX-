@@ -1,6 +1,8 @@
 //! Position data structures
 
 use starknet::ContractAddress;
+use core::num::traits::Zero;
+
 #[derive(Drop, starknet::Store, Serde, Copy)]
 pub struct Position {
     pub commitment: felt252,
@@ -13,7 +15,7 @@ pub struct Position {
     pub created_at: u64,
 }
 
-impl PositionZeroable of core::zeroable::Zeroable<Position> {
+impl PositionZeroable of Zero<Position> {
     fn zero() -> Position {
         Position {
             commitment: 0,
@@ -27,11 +29,11 @@ impl PositionZeroable of core::zeroable::Zeroable<Position> {
         }
     }
 
-    fn is_zero(self: Position) -> bool {
-        self.commitment == 0
+    fn is_zero(self: @Position) -> bool {
+        *self.commitment == 0
     }
 
-    fn is_non_zero(self: Position) -> bool {
+    fn is_non_zero(self: @Position) -> bool {
         !self.is_zero()
     }
 }

@@ -36,3 +36,6 @@ VERIFIER CONTRACT DEPLOYED CA
 
 
 0x027292ef24ba913a086183713992b43e781b681796a0bbdb00ae947ca21fa9c8
+
+
+A privacy-enabled perpetual futures DEX on Ztarknet (Starknet testnet) using Zero-Knowledge proofs to keep position details private.

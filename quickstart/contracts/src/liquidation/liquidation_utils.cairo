@@ -1,5 +1,6 @@
 //! Liquidation utility functions
 
+use core::traits::TryInto;
 use private_perp::position::position::Position;
 use private_perp::position::position_utils::calculate_pnl;
 

@@ -5,7 +5,7 @@ use starknet::ContractAddress;
 #[starknet::interface]
 pub trait IEventEmitter<TContractState> {
     fn emit_position_opened(
-        ref self: TContractState, commitment: felt252, market_id: felt252, is_long: bool,
+        ref self: TContractState, commitment: felt252, market_id: felt252,
     );
 
     fn emit_position_closed(
@@ -96,7 +96,7 @@ mod EventEmitter {
     struct PositionOpened {
         commitment: felt252,
         market_id: felt252,
-        is_long: bool,
+        // is_long removed - encoded in commitment for privacy
     }
 
     #[derive(Drop, starknet::Event)]
@@ -172,9 +172,9 @@ mod EventEmitter {
     #[abi(embed_v0)]
     impl EventEmitterImpl of super::IEventEmitter<ContractState> {
         fn emit_position_opened(
-            ref self: ContractState, commitment: felt252, market_id: felt252, is_long: bool,
+            ref self: ContractState, commitment: felt252, market_id: felt252,
         ) {
-            self.emit(PositionOpened { commitment, market_id, is_long });
+            self.emit(PositionOpened { commitment, market_id });
         }
 
         fn emit_position_closed(

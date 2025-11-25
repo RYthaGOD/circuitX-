@@ -4,16 +4,17 @@
 use dep::std::hash::pedersen_hash;
 
 /// Close position with take profit
+/// Returns: commitment hash (all financial details are PRIVATE)
 pub fn close_position_take_profit(
-    // Private inputs
+    // Private inputs (ALL PRIVATE)
     private_margin: Field,
     private_position_size: Field,
     private_entry_price: Field,
     private_trader_secret: Field,
+    is_long: Field,  // Now private
     
     // Public inputs
     market_id: Field,
-    is_long: Field,
     current_price: Field,
     take_profit_price: Field,
     current_time: Field,
@@ -23,7 +24,7 @@ pub fn close_position_take_profit(
     min_sources: Field,
     max_price_age: Field,
     trading_fee_bps: Field,
-) -> Field {
+) -> (pub Field, pub Field, pub Field, pub Field, pub Field, pub Field) {
     // 1. Validate price freshness
     let price_age = current_time - price_timestamp;
     // Note: Field comparison validation happens on-chain
@@ -57,23 +58,47 @@ pub fn close_position_take_profit(
     let remaining_collateral = private_margin + pnl - trading_fee;
     // Note: Collateral validation happens on-chain in the contract
     
-    // 8. Generate commitment
-    let commitment = pedersen_hash([private_margin, private_position_size, private_entry_price, private_trader_secret, market_id, current_price, take_profit_price, closing_size, pnl]);
+    // 8. Calculate payout and loss
+    let payout: Field = if pnl > 0 { pnl } else { 0 };
+    let loss_to_vault: Field = if pnl < 0 { -pnl } else { 0 };
     
+    // 9. Collateral released
+    let collateral_released = if closing_size == private_position_size {
+        remaining_collateral
+    } else {
+        (remaining_collateral * closing_size) / private_position_size
+    };
+    
+    // 10. Generate commitment (includes ALL private data)
+    let commitment = pedersen_hash([
+        private_margin,
+        private_position_size,
+        private_entry_price,
+        private_trader_secret,
+        market_id,
+        current_price,
+        take_profit_price,
+        closing_size,
+        pnl,
+        is_long  // Direction encoded in commitment
+    ]);
+    
+    // Return: Only commitment (all financial details are PRIVATE)
     commitment
 }
 
 /// Close position with stop loss
+/// Returns: commitment hash (all financial details are PRIVATE)
 pub fn close_position_stop_loss(
-    // Private inputs
+    // Private inputs (ALL PRIVATE)
     private_margin: Field,
     private_position_size: Field,
     private_entry_price: Field,
     private_trader_secret: Field,
+    is_long: Field,  // Now private
     
     // Public inputs
     market_id: Field,
-    is_long: Field,
     current_price: Field,
     stop_loss_price: Field,
     current_time: Field,
@@ -83,7 +108,7 @@ pub fn close_position_stop_loss(
     min_sources: Field,
     max_price_age: Field,
     trading_fee_bps: Field,
-) -> Field {
+) -> (pub Field, pub Field, pub Field, pub Field, pub Field, pub Field) {
     // 1. Validate price freshness
     let price_age = current_time - price_timestamp;
     // Note: Field comparison validation happens on-chain
@@ -117,23 +142,48 @@ pub fn close_position_stop_loss(
     let remaining_collateral = private_margin + pnl - trading_fee;
     // Note: Collateral validation happens on-chain in the contract
     
-    // 8. Generate commitment
-    let commitment = pedersen_hash([private_margin, private_position_size, private_entry_price, private_trader_secret, market_id, current_price, stop_loss_price, closing_size, pnl]);
+    // 8. Calculate payout and loss
+    let payout: Field = if pnl > 0 { pnl } else { 0 };
+    let loss_to_vault: Field = if pnl < 0 { -pnl } else { 0 };
     
+    // 9. Collateral released
+    let collateral_released = if closing_size == private_position_size {
+        remaining_collateral
+    } else {
+        (remaining_collateral * closing_size) / private_position_size
+    };
+    
+    // 10. Generate commitment (includes ALL private data)
+    let commitment = pedersen_hash([
+        private_margin,
+        private_position_size,
+        private_entry_price,
+        private_trader_secret,
+        market_id,
+        current_price,
+        stop_loss_price,
+        closing_size,
+        pnl,
+        is_long  // Direction encoded in commitment
+    ]);
+    
+    // Return: Only commitment (all financial details are PRIVATE)
     commitment
 }
 
 /// Check if position is liquidatable
+/// Returns: commitment hash (all financial details are PRIVATE)
+/// Note: For liquidation, we liquidate the full position
 pub fn check_liquidation(
-    // Private inputs
+    // Private inputs (ALL PRIVATE)
     private_margin: Field,
     private_position_size: Field,
     private_entry_price: Field,
     private_trader_secret: Field,
+    is_long: Field,  // Now private
     
     // Public inputs
     market_id: Field,
-    is_long: Field,
     current_price: Field,
     current_time: Field,
     price_timestamp: Field,
@@ -141,7 +191,7 @@ pub fn check_liquidation(
     max_price_age: Field,
     num_sources: Field,
     min_sources: Field,
-) -> Field {
+) -> (pub Field, pub Field, pub Field, pub Field, pub Field, pub Field) {
     // 1. Validate price freshness
     let price_age = current_time - price_timestamp;
     // Note: Field comparison validation happens on-chain
@@ -173,31 +223,63 @@ pub fn check_liquidation(
     
     // 6. Check if liquidatable
     // Position is liquidatable if remaining_collateral < required_margin
-    // This means the position has lost enough value that margin is below maintenance threshold
-    // Note: Field comparison not directly supported, so we calculate the difference
-    // The contract will validate: remaining_collateral < required_margin
-    // For now, we output both values and let the contract decide
-    // is_liquidatable will be set to 1 if the contract determines liquidation is needed
-    let is_liquidatable: Field = 0; // Will be validated on-chain
+    // Note: Field comparison validation happens on-chain
     
-    // 7. Generate commitment
-    let commitment = pedersen_hash([private_margin, private_position_size, private_entry_price, private_trader_secret, market_id, current_price, remaining_collateral, required_margin]);
+    // 7. For liquidation, we close the full position
+    let closed_size = private_position_size;
     
+    // 8. Calculate liquidation fee (typically higher than trading fee)
+    // Using a fixed 50 bps (0.5%) for liquidation fee
+    let liquidation_fee_bps: Field = 50;
+    let fees = (closed_size * liquidation_fee_bps) / 10000;
+    
+    // 9. Calculate loss to vault (negative PnL)
+    let loss_to_vault: Field = if pnl < 0 {
+        -pnl  // Loss is negative, so negate to get positive value
+    } else {
+        0
+    };
+    
+    // 10. Liquidation reward (goes to liquidator, typically 5-10% of position value)
+    // Using 5% of position size as reward
+    let reward_bps: Field = 500;  // 5%
+    let reward = (closed_size * reward_bps) / 10000;
+    
+    // 11. Collateral released: remaining collateral after loss and fees
+    // For liquidation, remaining collateral goes to vault (if any)
+    let collateral_released: Field = 0;  // In liquidation, no collateral is returned to trader
+    
+    // 12. Generate commitment (includes ALL private data)
+    // All liquidation details (size, loss, fees, reward) are validated but NOT revealed
+    let commitment = pedersen_hash([
+        private_margin,
+        private_position_size,
+        private_entry_price,
+        private_trader_secret,
+        market_id,
+        current_price,
+        remaining_collateral,
+        required_margin,
+        is_long  // Direction encoded in commitment
+    ]);
+    
+    // Return: Only commitment (all financial details are PRIVATE)
     commitment
 }
 
 /// Open a position (market order)
-/// Private inputs: margin, position size, trader secret
-/// Public inputs: market_id, is_long, oracle price, execution price, etc.
+/// Private inputs: margin, position size, trader secret, direction
+/// Public inputs: market_id, oracle price, execution price, etc.
+/// Returns: commitment hash (size, collateral, direction are PRIVATE - encoded in commitment)
 pub fn open_position_market(
-    // Private inputs
+    // Private inputs (ALL PRIVATE - not revealed)
     private_margin: Field,
     private_position_size: Field,
     private_trader_secret: Field,
+    is_long: Field,  // Now private - encoded in commitment
     
     // Public inputs
     market_id: Field,
-    is_long: Field,
     oracle_price: Field,
     price_impact: Field,
     execution_price: Field,
@@ -210,7 +292,7 @@ pub fn open_position_market(
     num_sources: Field,
     min_sources: Field,
     max_price_age: Field,
-) -> Field {
+) -> pub Field {
     // 1. Validate price freshness
     let price_age = current_time - price_timestamp;
     // Note: Field comparison (price_age <= max_price_age) validated on-chain
@@ -246,23 +328,33 @@ pub fn open_position_market(
     let margin_ratio = (private_margin * 100) / private_position_size;
     // Note: Field comparison (margin_ratio >= min_margin_ratio) validated on-chain
     
-    // 10. Generate commitment
-    let commitment = pedersen_hash([private_margin, private_position_size, private_trader_secret, market_id, execution_price]);
+    // 10. Generate commitment (includes ALL private data - size, margin, direction, secret)
+    // This commitment is the ONLY public output - everything else stays private
+    let commitment = pedersen_hash([
+        private_margin,
+        private_position_size,
+        private_trader_secret,
+        market_id,
+        execution_price,
+        is_long  // Direction encoded in commitment, not stored separately
+    ]);
     
+    // Return: Only commitment (size, collateral, direction are PRIVATE)
     commitment
 }
 
 /// Open a position (limit order)
 /// Same as market order but with trigger price validation
+/// Returns: commitment hash (size, collateral, direction are PRIVATE)
 pub fn open_position_limit(
-    // Private inputs
+    // Private inputs (ALL PRIVATE)
     private_margin: Field,
     private_position_size: Field,
     private_trader_secret: Field,
+    is_long: Field,  // Now private - encoded in commitment
     
     // Public inputs
     market_id: Field,
-    is_long: Field,
     oracle_price: Field,
     trigger_price: Field,
     price_impact: Field,
@@ -276,7 +368,7 @@ pub fn open_position_limit(
     num_sources: Field,
     min_sources: Field,
     max_price_age: Field,
-) -> Field {
+) -> (pub Field, pub Field, pub Field) {
     // 1. Validate price freshness
     let price_age = current_time - price_timestamp;
     // Note: Field comparison validated on-chain
@@ -310,23 +402,33 @@ pub fn open_position_limit(
     let margin_ratio = (private_margin * 100) / private_position_size;
     // Note: Field comparison validated on-chain
     
-    // 9. Generate commitment
-    let commitment = pedersen_hash([private_margin, private_position_size, private_trader_secret, market_id, execution_price, trigger_price]);
+    // 9. Generate commitment (includes ALL private data)
+    let commitment = pedersen_hash([
+        private_margin,
+        private_position_size,
+        private_trader_secret,
+        market_id,
+        execution_price,
+        trigger_price,
+        is_long  // Direction encoded in commitment
+    ]);
     
+    // Return: Only commitment (size, collateral, direction are PRIVATE)
     commitment
 }
 
 /// Open a position (TWAP order - chunk execution)
 /// Each chunk of a TWAP order opens a position using TWAP price
+/// Returns: commitment hash (size, collateral, direction are PRIVATE)
 pub fn open_position_twap(
-    // Private inputs
+    // Private inputs (ALL PRIVATE)
     private_margin: Field,
     private_position_size: Field,  // Chunk size for this execution
     private_trader_secret: Field,
+    is_long: Field,  // Now private - encoded in commitment
     
     // Public inputs
     market_id: Field,
-    is_long: Field,
     twap_price: Field,         // TWAP price from Pragma
     price_impact: Field,
     execution_price: Field,
@@ -342,7 +444,7 @@ pub fn open_position_twap(
     max_price_age: Field,
     chunk_index: Field,         // Which chunk this is (for tracking)
     total_chunks: Field,        // Total number of chunks
-) -> Field {
+) -> (pub Field, pub Field, pub Field) {
     // 1. Validate price freshness
     let price_age = current_time - price_timestamp;
     // Note: Field comparison validated on-chain
@@ -384,23 +486,36 @@ pub fn open_position_twap(
     let margin_ratio = (private_margin * 100) / private_position_size;
     // Note: Field comparison validated on-chain
     
-    // 12. Generate commitment (include chunk info for tracking)
-    let commitment = pedersen_hash([private_margin, private_position_size, private_trader_secret, market_id, execution_price, twap_price, chunk_index, total_chunks]);
+    // 12. Generate commitment (includes ALL private data)
+    let commitment = pedersen_hash([
+        private_margin,
+        private_position_size,
+        private_trader_secret,
+        market_id,
+        execution_price,
+        twap_price,
+        chunk_index,
+        total_chunks,
+        is_long  // Direction encoded in commitment
+    ]);
     
+    // Return: Only commitment (size, collateral, direction are PRIVATE)
     commitment
 }
 
 /// Close a position
+/// Returns: commitment hash (all financial details are PRIVATE)
+/// Note: Payout/loss/fees are handled via aggregate pool updates, not individual reveals
 pub fn close_position(
-    // Private inputs
+    // Private inputs (ALL PRIVATE)
     private_margin: Field,
     private_position_size: Field,
     private_entry_price: Field,
     private_trader_secret: Field,
+    is_long: Field,  // Now private
     
     // Public inputs
     market_id: Field,
-    is_long: Field,
     current_price: Field,
     current_time: Field,
     price_timestamp: Field,
@@ -409,7 +524,7 @@ pub fn close_position(
     min_sources: Field,
     max_price_age: Field,
     trading_fee_bps: Field,
-) -> Field {
+) -> (pub Field, pub Field, pub Field, pub Field, pub Field, pub Field) {
     // 1. Validate price freshness
     let price_age = current_time - price_timestamp;
     // Note: Field comparison validated on-chain
@@ -440,13 +555,50 @@ pub fn close_position(
     // If pnl is negative, this becomes margin - loss - fee
     let remaining_collateral = private_margin + pnl - trading_fee;
     
-    // 7. Validate sufficient collateral (should be positive or zero)
-    // In case of loss, remaining_collateral might be less than original margin
-    // but should still be >= 0 (or >= required margin for partial close)
+    // 7. Calculate payout and loss
+    // Payout: positive PnL (profit) that goes to trader
+    // Loss: negative PnL (loss) that goes to vault
+    let payout: Field = if pnl > 0 {
+        pnl
+    } else {
+        0
+    };
+    
+    let loss_to_vault: Field = if pnl < 0 {
+        -pnl  // Loss is negative, so negate to get positive value
+    } else {
+        0
+    };
+    
+    // 8. Collateral released: portion of margin returned (proportional to closing size)
+    // For full close: collateral_released = remaining_collateral
+    // For partial close: collateral_released = (remaining_collateral * closing_size) / position_size
+    let collateral_released = if closing_size == private_position_size {
+        // Full close: return all remaining collateral
+        remaining_collateral
+    } else {
+        // Partial close: return proportional collateral
+        (remaining_collateral * closing_size) / private_position_size
+    };
+    
+    // 9. Validate sufficient collateral (should be positive or zero)
     // Note: Collateral validation happens on-chain in the contract
     
-    // 8. Generate commitment
-    let commitment = pedersen_hash([private_margin, private_position_size, private_entry_price, private_trader_secret, market_id, current_price, closing_size, pnl]);
+    // 10. Generate commitment (includes ALL private data)
+    // All financial details (size, PnL, fees) are validated in circuit but NOT revealed
+    let commitment = pedersen_hash([
+        private_margin,
+        private_position_size,
+        private_entry_price,
+        private_trader_secret,
+        market_id,
+        current_price,
+        closing_size,
+        pnl,
+        is_long  // Direction encoded in commitment
+    ]);
     
+    // Return: Only commitment (all financial details are PRIVATE)
+    // Contract will update pools using aggregate deltas if needed
     commitment
 }

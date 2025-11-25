@@ -8,6 +8,7 @@ pub mod core {
     pub mod market_registry;
     pub mod oracle;
     pub mod role_store;
+    pub mod verifier;
 }
 
 // Position logic (libraries)
@@ -25,8 +26,10 @@ pub mod order {
     pub mod base_order_utils;
     pub mod error;
     pub mod order;
+    pub mod order_record;
     pub mod order_utils;
     pub mod twap_order;
+    pub mod twap_order_record;
 }
 
 // Fee logic (libraries)

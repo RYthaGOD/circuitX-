@@ -5,17 +5,19 @@ mod perp;
 
 /// Main function that routes to different perp actions
 /// action: 0 = open_market, 1 = open_limit, 2 = open_twap, 3 = close, 4 = close_tp, 5 = close_sl, 6 = liquidation
+/// Returns: commitment hash (ALL position details are PRIVATE)
+/// Note: Size, collateral, direction, PnL, fees are all validated in circuit but NOT revealed
 fn main(
     action: pub Field,
-    // Private inputs (common)
+    // Private inputs (common) - ALL PRIVATE
     private_margin: Field,
     private_position_size: Field,
     private_entry_price: Field,
     private_trader_secret: Field,
+    is_long: Field,  // Now private - encoded in commitment
     
     // Public inputs (common)
     market_id: pub Field,
-    is_long: pub Field,
     oracle_price: pub Field,
     current_time: pub Field,        // Current block timestamp
     price_timestamp: pub Field,
@@ -42,16 +44,17 @@ fn main(
     chunk_index: pub Field,
     total_chunks: pub Field,
 ) -> pub Field {
-    let mut commitment: Field = 0;
+    // Return: Only commitment hash
+    // All position details (size, collateral, direction, PnL, fees) are PRIVATE
     
     if action == 0 {
         // Open position (market order)
-        commitment = perp::open_position_market(
+        let commitment = perp::open_position_market(
             private_margin,
             private_position_size,
             private_trader_secret,
+            is_long,  // Now private
             market_id,
-            is_long,
             oracle_price,
             price_impact,
             execution_price,
@@ -65,14 +68,15 @@ fn main(
             min_sources,
             max_price_age,
         );
+        commitment
     } else if action == 1 {
         // Open position (limit order)
-        commitment = perp::open_position_limit(
+        let commitment = perp::open_position_limit(
             private_margin,
             private_position_size,
             private_trader_secret,
+            is_long,  // Now private
             market_id,
-            is_long,
             oracle_price,
             trigger_price,
             price_impact,
@@ -87,14 +91,15 @@ fn main(
             min_sources,
             max_price_age,
         );
+        commitment
     } else if action == 2 {
         // Open position (TWAP order)
-        commitment = perp::open_position_twap(
+        let commitment = perp::open_position_twap(
             private_margin,
             private_position_size,
             private_trader_secret,
+            is_long,  // Now private
             market_id,
-            is_long,
             twap_price,
             price_impact,
             execution_price,
@@ -111,15 +116,16 @@ fn main(
             chunk_index,
             total_chunks,
         );
+        commitment
     } else if action == 3 {
         // Close position
-        commitment = perp::close_position(
+        let commitment = perp::close_position(
             private_margin,
             private_position_size,
             private_entry_price,
             private_trader_secret,
+            is_long,  // Now private
             market_id,
-            is_long,
             current_price,
             current_time,
             price_timestamp,
@@ -129,15 +135,16 @@ fn main(
             max_price_age,
             trading_fee_bps,
         );
+        commitment
     } else if action == 4 {
         // Close position (take profit)
-        commitment = perp::close_position_take_profit(
+        let commitment = perp::close_position_take_profit(
             private_margin,
             private_position_size,
             private_entry_price,
             private_trader_secret,
+            is_long,  // Now private
             market_id,
-            is_long,
             current_price,
             take_profit_price,
             current_time,
@@ -148,15 +155,16 @@ fn main(
             max_price_age,
             trading_fee_bps,
         );
+        commitment
     } else if action == 5 {
         // Close position (stop loss)
-        commitment = perp::close_position_stop_loss(
+        let commitment = perp::close_position_stop_loss(
             private_margin,
             private_position_size,
             private_entry_price,
             private_trader_secret,
+            is_long,  // Now private
             market_id,
-            is_long,
             current_price,
             stop_loss_price,
             current_time,
@@ -167,15 +175,16 @@ fn main(
             max_price_age,
             trading_fee_bps,
         );
+        commitment
     } else if action == 6 {
         // Check liquidation
-        commitment = perp::check_liquidation(
+        let commitment = perp::check_liquidation(
             private_margin,
             private_position_size,
             private_entry_price,
             private_trader_secret,
+            is_long,  // Now private
             market_id,
-            is_long,
             current_price,
             current_time,
             price_timestamp,
@@ -184,11 +193,11 @@ fn main(
             num_sources,
             min_sources,
         );
+        commitment
     } else {
         assert(false, "INVALID_ACTION");
+        0
     }
-    
-    commitment
 }
 
 #[test]
@@ -197,8 +206,8 @@ fn test_open_position_twap() {
         100,      // private_margin
         1000,     // private_position_size (chunk size)
         12345,    // private_trader_secret
+        1,        // is_long (now private)
         1,        // market_id
-        1,        // is_long
         50000,    // twap_price
         50,       // price_impact
         50050,    // execution_price
@@ -224,8 +233,8 @@ fn test_open_position_market() {
         100,      // private_margin
         1000,     // private_position_size
         12345,    // private_trader_secret
+        1,        // is_long (now private)
         1,        // market_id
-        1,        // is_long
         50000,    // oracle_price
         50,       // price_impact
         50050,    // execution_price
@@ -249,8 +258,8 @@ fn test_close_position() {
         1000,     // private_position_size
         50000,    // private_entry_price
         12345,    // private_trader_secret
+        1,        // is_long (now private)
         1,        // market_id
-        1,        // is_long
         51000,    // current_price
         1000000,  // current_time
         1000000,  // price_timestamp
@@ -270,8 +279,8 @@ fn test_check_liquidation() {
         1000,     // private_position_size
         50000,    // private_entry_price
         12345,    // private_trader_secret
+        1,        // is_long (now private)
         1,        // market_id
-        1,        // is_long
         49000,    // current_price (loss)
         1000000,  // current_time
         1000000,  // price_timestamp

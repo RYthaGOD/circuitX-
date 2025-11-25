@@ -1,7 +1,7 @@
 //! Calculation utilities
 
+use core::traits::TryInto;
 use private_perp::utils::i256::i256;
-use starknet::ContractAddress;
 
 /// Convert u256 to signed i256
 pub fn to_signed(value: u256, is_positive: bool) -> i256 {

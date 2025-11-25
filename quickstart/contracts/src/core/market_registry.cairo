@@ -1,8 +1,6 @@
 //! Market Registry - Helper contract to register markets with Pragma asset IDs
 
-use private_perp::core::data_store::{IDataStoreDispatcher, IDataStoreDispatcherTrait, MarketConfig};
-use private_perp::core::oracle::{IOracleDispatcher, IOracleDispatcherTrait};
-use starknet::ContractAddress;
+use private_perp::core::data_store::MarketConfig;
 
 #[starknet::interface]
 pub trait IMarketRegistry<TContractState> {

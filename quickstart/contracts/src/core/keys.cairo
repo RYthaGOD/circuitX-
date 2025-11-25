@@ -1,10 +1,7 @@
 //! Storage keys for DataStore
 
-use starknet::ContractAddress;
-
 /// Generate storage keys for various data types
 pub mod keys {
-    use starknet::ContractAddress;
 
     /// Position commitment key
     pub fn position_key(commitment: felt252) -> felt252 {
@@ -46,5 +43,7 @@ pub mod keys {
         'funding_updated' + market_id
     }
 }
+
+
 
 

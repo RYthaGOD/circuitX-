@@ -1,9 +1,6 @@
 //! Centralized data storage contract
 
-use private_perp::core::keys;
-use private_perp::position::position_record::{PositionRecord, position_record_empty};
-use starknet::storage::{Map, StorageMapReadAccess, StorageMapWriteAccess};
-use starknet::ContractAddress;
+use private_perp::position::position_record::PositionRecord;
 
 #[starknet::interface]
 pub trait IDataStore<TContractState> {
@@ -44,7 +41,7 @@ pub struct MarketConfig {
 
 #[starknet::contract]
 mod DataStore {
-    use private_perp::core::keys;
+    use private_perp::core::keys::keys;
     use private_perp::core::role_store::{IRoleStoreDispatcher, IRoleStoreDispatcherTrait};
     use private_perp::position::position_record::{
         PositionRecord, position_record_empty,
@@ -67,7 +64,8 @@ mod DataStore {
         self.role_store.write(role_store_address);
     }
 
-    fn role_store(self: @ContractState) -> IRoleStoreDispatcher {
+    // Helper function to get role store dispatcher
+    fn get_role_store(self: @ContractState) -> IRoleStoreDispatcher {
         IRoleStoreDispatcher { contract_address: self.role_store.read() }
     }
 
@@ -80,14 +78,14 @@ mod DataStore {
         fn set_position(ref self: ContractState, commitment: felt252, position: PositionRecord) {
             // Only controller can set positions
             let caller = get_caller_address();
-            self.role_store().assert_only_role(caller, 'CONTROLLER');
+            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.positions.write(commitment, position);
         }
 
         fn remove_position(ref self: ContractState, commitment: felt252) {
             let caller = get_caller_address();
-            self.role_store().assert_only_role(caller, 'CONTROLLER');
+            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.positions.write(commitment, position_record_empty());
         }
@@ -98,7 +96,7 @@ mod DataStore {
 
         fn set_market_config(ref self: ContractState, market_id: felt252, config: MarketConfig) {
             let caller = get_caller_address();
-            self.role_store().assert_only_role(caller, 'ADMIN');
+            get_role_store(@self).assert_only_role(caller, 'ADMIN');
 
             self.market_configs.write(market_id, config);
         }
@@ -109,7 +107,7 @@ mod DataStore {
 
         fn set_u256(ref self: ContractState, key: felt252, value: u256) {
             let caller = get_caller_address();
-            self.role_store().assert_only_role(caller, 'CONTROLLER');
+            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.u256_storage.write(key, value);
         }
@@ -120,7 +118,7 @@ mod DataStore {
 
         fn set_collateral_pool(ref self: ContractState, market_id: felt252, amount: u256) {
             let caller = get_caller_address();
-            self.role_store().assert_only_role(caller, 'CONTROLLER');
+            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.collateral_pools.write(market_id, amount);
         }
@@ -131,7 +129,7 @@ mod DataStore {
 
         fn set_long_open_interest(ref self: ContractState, market_id: felt252, amount: u256) {
             let caller = get_caller_address();
-            self.role_store().assert_only_role(caller, 'CONTROLLER');
+            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.u256_storage.write(private_perp::core::keys::keys::long_open_interest_key(market_id), amount);
         }
@@ -142,7 +140,7 @@ mod DataStore {
 
         fn set_short_open_interest(ref self: ContractState, market_id: felt252, amount: u256) {
             let caller = get_caller_address();
-            self.role_store().assert_only_role(caller, 'CONTROLLER');
+            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.u256_storage.write(private_perp::core::keys::keys::short_open_interest_key(market_id), amount);
         }

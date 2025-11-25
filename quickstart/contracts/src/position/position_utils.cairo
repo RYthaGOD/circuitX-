@@ -1,5 +1,6 @@
 //! Position utility functions (library)
 
+use core::traits::TryInto;
 use private_perp::core::data_store::{IDataStoreDispatcher, IDataStoreDispatcherTrait, MarketConfig};
 use private_perp::position::position::Position;
 use private_perp::utils::i256::i256;

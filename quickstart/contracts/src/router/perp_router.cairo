@@ -84,13 +84,12 @@ pub trait IPerpRouter<TContractState> {
 #[starknet::contract]
 mod PerpRouter {
     use core::array::SpanTrait;
-    use private_perp::handlers::liquidation_handler::ILiquidationHandlerDispatcher;
-    use private_perp::handlers::order_handler::IOrderHandlerDispatcher;
-    use private_perp::handlers::position_handler::IPositionHandlerDispatcher;
-    use private_perp::risk::risk_manager::IRiskManagerDispatcher;
+    use private_perp::handlers::liquidation_handler::{ILiquidationHandlerDispatcher, ILiquidationHandlerDispatcherTrait};
+    use private_perp::handlers::order_handler::{IOrderHandlerDispatcher, IOrderHandlerDispatcherTrait};
+    use private_perp::handlers::position_handler::{IPositionHandlerDispatcher, IPositionHandlerDispatcherTrait};
+    use private_perp::risk::risk_manager::{IRiskManagerDispatcher, IRiskManagerDispatcherTrait};
     use starknet::ContractAddress;
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
-    use super::IPerpRouter;
 
     #[storage]
     struct Storage {

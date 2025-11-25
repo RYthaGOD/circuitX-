@@ -37,8 +37,6 @@ pub struct Price {
     pub num_sources: u32,
 }
 
-pub use Price;
-
 #[starknet::contract]
 mod Oracle {
     use pragma_lib::abi::{
@@ -54,6 +52,7 @@ mod Oracle {
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess,
     };
+    use super::Price;
 
     // Asset IDs (felt252 conversions) - Pragma Oracle pair IDs
     const BTC_USD: felt252 = 18669995996566340; // BTC/USD
@@ -66,10 +65,15 @@ mod Oracle {
 
     // Pragma Summary Stats contract address (for TWAP)
     // Note: Using a hardcoded address - in production, this should be configurable
-    #[feature("deprecated-starknet-consts")]
-    const SUMMARY_STATS_ADDRESS: ContractAddress = starknet::contract_address_const::<
-        0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4,
-    >().try_into().unwrap();
+    // Using a function instead of const due to Cairo limitations
+    #[generate_trait]
+    impl OracleInternal of OracleInternalTrait {
+        fn get_summary_stats_address() -> ContractAddress {
+            starknet::contract_address_const::<
+                0x6421fdd068d0dc56b7f5edc956833ca0ba66b2d5f9a8fea40932f226668b5c4,
+            >()
+        }
+    }
 
     #[storage]
     struct Storage {
@@ -96,8 +100,8 @@ mod Oracle {
 
     #[external(v0)]
     impl OracleImpl of super::IOracle<ContractState> {
-        fn get_price(self: @ContractState, market_id: felt252) -> Price {
-            let price = self.prices.read(market_id);
+        fn get_price(self: @ContractState, market_id: felt252) -> super::Price {
+            let price: super::Price = self.prices.read(market_id);
             assert(price.timestamp != 0, 'PRICE_NOT_SET');
 
             // Validate price is not too stale
@@ -119,14 +123,15 @@ mod Oracle {
             };
 
             // Call the Oracle contract for a spot entry
+            let asset_data_type: DataType = DataType::SpotEntry(asset_id);
             let output: PragmaPricesResponse = oracle_dispatcher
-                .get_data_median(DataType::SpotEntry(asset_id));
+                .get_data_median(asset_data_type);
 
             // Validate response
             assert(output.price > 0, 'INVALID_PRICE');
 
             // Create Price struct
-            let price = Price {
+            let price: super::Price = super::Price {
                 value: output.price,
                 timestamp: get_block_timestamp(),
                 decimals: output.decimals,
@@ -159,7 +164,7 @@ mod Oracle {
 
             // Get Summary Stats dispatcher
             let summary_dispatcher = ISummaryStatsABIDispatcher {
-                contract_address: SUMMARY_STATS_ADDRESS,
+                contract_address: OracleInternalTrait::get_summary_stats_address(),
             };
 
             // Calculate TWAP using Pragma Summary Stats
