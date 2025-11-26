@@ -1,6 +1,6 @@
 
 use super::honk_verifier_constants::{vk, VK_HASH, precomputed_lines};
-use super::honk_verifier_circuits::{run_GRUMPKIN_ZK_HONK_SUMCHECK_SIZE_15_PUB_42_circuit, run_GRUMPKIN_ZKHONK_PREP_MSM_SCALARS_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_INIT_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_LOOP_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_DONE_SIZE_15_circuit, is_on_curve_bn254};
+use super::honk_verifier_circuits::{run_GRUMPKIN_ZK_HONK_SUMCHECK_SIZE_15_PUB_41_circuit, run_GRUMPKIN_ZKHONK_PREP_MSM_SCALARS_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_INIT_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_LOOP_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_DONE_SIZE_15_circuit, is_on_curve_bn254};
 
 #[starknet::interface]
 pub trait IUltraStarknetZKHonkVerifier<TContractState> {
@@ -16,7 +16,7 @@ mod UltraStarknetZKHonkVerifier {
     use garaga::pairing_check::{multi_pairing_check_bn254_2P_2F, MPCheckHintBN254};
     use garaga::ec_ops::{G1PointTrait, _ec_safe_add, _scalar_mul_glv_and_fake_glv, GlvFakeGlvHint};
     use garaga::circuits::ec;
-    use super::{vk, VK_HASH, precomputed_lines, run_GRUMPKIN_ZK_HONK_SUMCHECK_SIZE_15_PUB_42_circuit, run_GRUMPKIN_ZKHONK_PREP_MSM_SCALARS_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_INIT_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_LOOP_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_DONE_SIZE_15_circuit, is_on_curve_bn254};
+    use super::{vk, VK_HASH, precomputed_lines, run_GRUMPKIN_ZK_HONK_SUMCHECK_SIZE_15_PUB_41_circuit, run_GRUMPKIN_ZKHONK_PREP_MSM_SCALARS_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_INIT_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_LOOP_SIZE_15_circuit, run_GRUMPKIN_ZK_HONK_EVALS_CONS_DONE_SIZE_15_circuit, is_on_curve_bn254};
     use garaga::utils::noir::{ZKHonkProof, G2_POINT_KZG_1, G2_POINT_KZG_2};
     use garaga::utils::noir::honk_transcript::{Point256IntoCircuitPoint, StarknetHasherState};
     use garaga::utils::noir::zk_honk_transcript::{ZKHonkTranscriptTrait, ZK_BATCHED_RELATION_PARTIAL_LENGTH};
@@ -52,7 +52,7 @@ mod UltraStarknetZKHonkVerifier {
 
             let (transcript, transcript_state, base_rlc) = ZKHonkTranscriptTrait::from_proof::<StarknetHasherState>(vk.circuit_size, vk.public_inputs_size, vk.public_inputs_offset, full_proof.proof);
             let log_n = vk.log_circuit_size;
-            let (sum_check_rlc, honk_check) = run_GRUMPKIN_ZK_HONK_SUMCHECK_SIZE_15_PUB_42_circuit(
+            let (sum_check_rlc, honk_check) = run_GRUMPKIN_ZK_HONK_SUMCHECK_SIZE_15_PUB_41_circuit(
                 p_public_inputs: full_proof.proof.public_inputs,
                 p_pairing_point_object: full_proof.proof.pairing_point_object,
                 p_public_inputs_offset: vk.public_inputs_offset.into(),

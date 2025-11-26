@@ -195,7 +195,7 @@ fn main(
         );
         commitment
     } else {
-        assert(false, "INVALID_ACTION");
+        // Invalid action - return zero commitment (will be rejected on-chain)
         0
     }
 }

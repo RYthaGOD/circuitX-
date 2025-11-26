@@ -10,10 +10,10 @@ private_margin = "200"
 private_position_size = "2000"
 private_entry_price = "50000"
 private_trader_secret = "99999"
+is_long = "1"
 
 # Public inputs (common - always needed)
 market_id = "1"
-is_long = "1"
 oracle_price = "50000"
 current_time = "1000000"
 price_timestamp = "1000000"
