@@ -17,11 +17,22 @@ Perpl
 
 
 Noir PERP MAIN .nr verifier details 
-
-
 [circuit] Circuit witness successfully solved
 [circuit] Circuit output: Field(5319575020774049596131082368254919213531893255144578035753309073299427770889)
 [circuit] Witness saved to /mnt/c/Users/DELL/ztarknet/quickstart/circuit/target/witness.gz
+
+sncast declare --contract-name UltraStarknetZKHonkVerifier result:
+Finished `release` profile target(s) in 50 seconds
+Success: Declaration completed
+Class Hash:       0xada05f4724bbf3d17a002b8e6ac41e4f3b19b13629f7feb57cb19de07c88
+Transaction Hash: 0x48c6daf7158430d4cab398320518766ea2387f51e161c47e2d3edc82ed7c2f8
+
+sncast invoke \
+// txn hash **
+0x068099e4a45f7be76c37ca945729df69355f48284809e3e7916301283efe0489
+
+// contract address **
+0x26cb40ff6fda0e89fe50a7b229c5ffb172177406f85ac2fa96ac3e2a2cb7d2d
 
 
 0x027292ef24ba913a086183713992b43e781b681796a0bbdb00ae947ca21fa9c8
