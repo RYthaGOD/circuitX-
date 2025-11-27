@@ -15,6 +15,8 @@ import initACVM from "@noir-lang/acvm_js";
 import acvm from "@noir-lang/acvm_js/web/acvm_js_bg.wasm?url";
 import noirc from "@noir-lang/noirc_abi/web/noirc_abi_wasm_bg.wasm?url";
 import Faucet from './components/Faucet';
+import { TradingInterface } from './components/Trading/TradingInterface';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   const [proofState, setProofState] = useState<ProofStateData>({
@@ -184,33 +186,62 @@ function App() {
     return states.indexOf(state);
   };
 
-  const [currentPage, setCurrentPage] = useState<'proof' | 'faucet'>('faucet');
+  const [currentPage, setCurrentPage] = useState<'proof' | 'faucet' | 'trading'>('trading');
 
   return (
-    <div className="container">
-      <nav className="app-nav">
-        <button 
-          className={currentPage === 'faucet' ? 'active' : ''}
-          onClick={() => setCurrentPage('faucet')}
-        >
-          yUSD Faucet
-        </button>
-        <button 
-          className={currentPage === 'proof' ? 'active' : ''}
-          onClick={() => setCurrentPage('proof')}
-        >
-          Proof Generation
-        </button>
-      </nav>
-
-      {currentPage === 'faucet' ? (
-        <Faucet />
+    <>
+      {currentPage === 'trading' ? (
+        <ErrorBoundary>
+          <TradingInterface />
+        </ErrorBoundary>
       ) : (
-        <>
-          <h1>Noir Proof Generation & Starknet Verification</h1>
-          
-          <div className="state-machine">
-        <div className="input-section">
+        <div className="container">
+          {/* Tailwind CSS Test Banner */}
+          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 mb-4 rounded-lg shadow-lg">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold">🎨 Tailwind CSS Test</h2>
+                <p className="text-sm text-blue-100">If you see this styled banner, Tailwind is working!</p>
+              </div>
+              <div className="flex gap-2">
+                <div className="bg-white/20 rounded px-3 py-1 text-sm font-semibold">Card Test</div>
+                <div className="bg-white/20 rounded px-3 py-1 text-sm font-semibold">Grid Test</div>
+                <button className="bg-white text-blue-600 hover:bg-blue-50 font-bold py-1 px-4 rounded transition-colors">
+                  Button Test
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <nav className="app-nav">
+            <button 
+              className={(currentPage as string) === 'trading' ? 'active' : ''}
+              onClick={() => setCurrentPage('trading')}
+            >
+              Trading
+            </button>
+            <button 
+              className={currentPage === 'faucet' ? 'active' : ''}
+              onClick={() => setCurrentPage('faucet')}
+            >
+              yUSD Faucet
+            </button>
+            <button 
+              className={currentPage === 'proof' ? 'active' : ''}
+              onClick={() => setCurrentPage('proof')}
+            >
+              Proof Generation
+            </button>
+          </nav>
+
+          {currentPage === 'faucet' ? (
+            <Faucet />
+          ) : (
+            <>
+              <h1>Noir Proof Generation & Starknet Verification</h1>
+              
+              <div className="state-machine">
+                <div className="input-section">
           <div className="input-group">
             <label htmlFor="input-x">X:</label>
             <input 
@@ -239,31 +270,33 @@ function App() {
           </div>
         </div>
         
-        {renderStateIndicator(ProofState.GeneratingWitness, proofState.state)}
-        {renderStateIndicator(ProofState.GeneratingProof, proofState.state)}
-        {renderStateIndicator(ProofState.PreparingCalldata, proofState.state)}
-        {renderStateIndicator(ProofState.ConnectingWallet, proofState.state)}
-        {renderStateIndicator(ProofState.SendingTransaction, proofState.state)}
-      </div>
-      
-      {proofState.error && (
-        <div className="error-message">
-          Error at stage '{proofState.state}': {proofState.error}
+                {renderStateIndicator(ProofState.GeneratingWitness, proofState.state)}
+                {renderStateIndicator(ProofState.GeneratingProof, proofState.state)}
+                {renderStateIndicator(ProofState.PreparingCalldata, proofState.state)}
+                {renderStateIndicator(ProofState.ConnectingWallet, proofState.state)}
+                {renderStateIndicator(ProofState.SendingTransaction, proofState.state)}
+              </div>
+              
+              {proofState.error && (
+                <div className="error-message">
+                  Error at stage '{proofState.state}': {proofState.error}
+                </div>
+              )}
+              
+              <div className="controls">
+                {proofState.state === ProofState.Initial && !proofState.error && (
+                  <button className="primary-button" onClick={startProcess}>Start</button>
+                )}
+                
+                {(proofState.error || proofState.state === ProofState.ProofVerified) && (
+                  <button className="reset-button" onClick={resetState}>Reset</button>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
-      
-      <div className="controls">
-        {proofState.state === ProofState.Initial && !proofState.error && (
-          <button className="primary-button" onClick={startProcess}>Start</button>
-        )}
-        
-        {(proofState.error || proofState.state === ProofState.ProofVerified) && (
-          <button className="reset-button" onClick={resetState}>Reset</button>
-        )}
-      </div>
-        </>
-      )}
-    </div>
+    </>
   )
 }
 

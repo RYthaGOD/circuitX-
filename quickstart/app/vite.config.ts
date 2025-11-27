@@ -47,6 +47,7 @@ export default defineConfig({
       'Cross-Origin-Opener-Policy': 'same-origin',
       'Cross-Origin-Embedder-Policy': 'require-corp',
     },
+    // Proxy removed - now using Pyth Network directly (no CORS issues)
   },
   build: {
     commonjsOptions: {

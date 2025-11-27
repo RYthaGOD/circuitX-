@@ -524,3 +524,6 @@ The circuit ensures that:
 - Only commitment hashes are stored on-chain
 - Users maintain full privacy while trading
 
+
+
+
