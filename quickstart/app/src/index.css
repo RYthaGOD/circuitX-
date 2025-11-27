@@ -101,30 +101,30 @@ button {
 input[type="range"].slider {
   -webkit-appearance: none;
   appearance: none;
-  height: 4px;
-  border-radius: 2px;
+  height: 2px;
+  border-radius: 1px;
 }
 
 input[type="range"].slider::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #50d2c1;
   cursor: pointer;
-  border: 2px solid #0f1a1f;
-  box-shadow: 0 0 0 2px rgba(80, 210, 193, 0.3);
+  border: 1px solid #0f1a1f;
+  box-shadow: 0 0 0 1px rgba(80, 210, 193, 0.3);
 }
 
 input[type="range"].slider::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: #50d2c1;
   cursor: pointer;
-  border: 2px solid #0f1a1f;
-  box-shadow: 0 0 0 2px rgba(80, 210, 193, 0.3);
+  border: 1px solid #0f1a1f;
+  box-shadow: 0 0 0 1px rgba(80, 210, 193, 0.3);
 }
 
 /* Style get-starknet connect modal */

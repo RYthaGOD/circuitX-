@@ -78,12 +78,12 @@ export function OrderForm() {
   };
 
   return (
-    <div className="flex flex-col h-full space-y-3">
-      {/* Top Controls: Cross, 20x, One-Way */}
-      <div className="flex gap-1 pb-2 border-b border-[rgba(255,255,255,0.1)]">
+    <div className="bg-[#0f1a1f] rounded border border-[rgba(255,255,255,0.1)] p-3 flex flex-col">
+      {/* Top Controls: Cross, 20x, One-Way - Centered with equal padding, smaller buttons and text */}
+      <div className="flex justify-center gap-1 pt-8">
         <button
           onClick={() => setMarginMode('cross')}
-          className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+          className={`px-1 py-0.5 rounded-full text-[8px] font-extralight transition-all ${
             marginMode === 'cross'
               ? 'bg-white/10 text-white'
               : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
@@ -93,7 +93,7 @@ export function OrderForm() {
         </button>
         <button
           onClick={() => setLeverage('20x')}
-          className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+          className={`px-1 py-0.5 rounded-full text-[8px] font-extralight transition-all ${
             leverage === '20x'
               ? 'bg-white/10 text-white'
               : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
@@ -103,7 +103,7 @@ export function OrderForm() {
         </button>
         <button
           onClick={() => setPositionMode('one-way')}
-          className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+          className={`px-1 py-0.5 rounded-full text-[8px] font-extralight transition-all ${
             positionMode === 'one-way'
               ? 'bg-white/10 text-white'
               : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
@@ -113,11 +113,11 @@ export function OrderForm() {
         </button>
       </div>
 
-      {/* Order Type Tabs */}
-      <div className="flex items-center gap-3">
+      {/* Order Type Tabs: Market, Limit, TWAP - Smaller text, light font, underline for active */}
+      <div className="flex items-center justify-center gap-2" style={{ paddingTop: '7px', paddingBottom: '7px' }}>
         <button
           onClick={() => setOrderType('market')}
-          className={`px-1 py-1 text-xs font-medium transition-all ${
+          className={`px-1 py-0.5 text-[5px] font-extralight transition-all ${
             orderType === 'market'
               ? 'text-[#50d2c1] border-b border-[#50d2c1]'
               : 'text-white/70 hover:text-white'
@@ -127,7 +127,7 @@ export function OrderForm() {
         </button>
         <button
           onClick={() => setOrderType('limit')}
-          className={`px-1 py-1 text-xs font-medium transition-all ${
+          className={`px-1 py-0.5 text-[5px] font-extralight transition-all ${
             orderType === 'limit'
               ? 'text-[#50d2c1] border-b border-[#50d2c1]'
               : 'text-white/70 hover:text-white'
@@ -135,77 +135,94 @@ export function OrderForm() {
         >
           Limit
         </button>
-        <button className="px-1 py-1 text-xs font-medium text-white/70 hover:text-white flex items-center gap-1">
-          Pro
-          <ChevronDown size={12} />
+        <button 
+          onClick={() => setOrderType('twap')}
+          className={`px-1 py-0.5 text-[5px] font-extralight flex items-center gap-0.5 transition-all ${
+            orderType === 'twap'
+              ? 'text-[#50d2c1] border-b border-[#50d2c1]'
+              : 'text-white/70 hover:text-white'
+          }`}
+        >
+          TWAP
         </button>
       </div>
 
-      {/* Long/Short Toggle */}
-      <div className="flex gap-2">
+      {/* Long/Short Toggle - Sliding switch effect */}
+      <div className="relative flex gap-0.5 p-0.5 bg-white/5 rounded-4xl" style={{ marginTop: '8px' }}>
         <button
           onClick={() => setOrderSide('long')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 rounded text-xs font-medium transition-all ${
+          className={`relative flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-4xl text-[7px] font-extralight transition-all z-10 ${
             orderSide === 'long'
-              ? 'bg-[#50d2c1] text-[#0f1a1f]'
-              : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
+              ? 'text-[#0f1a1f]'
+              : 'text-white/70 hover:text-white'
           }`}
         >
-          <ArrowUp size={14} />
+          <ArrowUp size={12} />
           Buy / Long
         </button>
         <button
           onClick={() => setOrderSide('short')}
-          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-3 rounded text-xs font-medium transition-all ${
+          className={`relative flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-4xl text-[7px] font-extralight transition-all z-10 ${
             orderSide === 'short'
-              ? 'bg-red-500 text-white'
-              : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
+              ? 'text-white'
+              : 'text-white/70 hover:text-white'
           }`}
         >
-          <ArrowDown size={14} />
+          <ArrowDown size={12} />
           Sell / Short
         </button>
+        {/* Sliding background */}
+        <div
+          className={`absolute top-0.5 bottom-0.5 w-[calc(50%-0.25rem)] rounded transition-all duration-200 ${
+            orderSide === 'long'
+              ? 'left-0.5 bg-[#50d2c1]'
+              : 'left-[calc(50%+0.25rem)] bg-red-500'
+          }`}
+        />
       </div>
 
       {/* Account Info */}
-      <div className="text-xs text-white/50 space-y-1">
+      <div className="text-[12px] text-white/50 space-y-0.5" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
         <div className="flex justify-between">
           <span>Available to Trade:</span>
-          <span>0.00 USDC</span>
+          <span>0.00 yUSD</span>
         </div>
-        <div className="flex justify-between">
+        <div className="flex pt-4 justify-between">
           <span>Current Position:</span>
-          <span>0.00000 BTC</span>
+          <span>0.000 BTC</span>
         </div>
       </div>
 
       {/* Order Form */}
-      <form onSubmit={handleSubmit} className="flex-1 flex flex-col space-y-3">
-        {/* Size Input */}
-        <div>
-          <div className="flex justify-between items-center mb-1.5">
-            <label className="text-xs text-white/70">Size</label>
-            <button
-              type="button"
-              className="text-xs text-white/70 hover:text-white flex items-center gap-1 px-2 py-0.5 rounded hover:bg-white/5"
-            >
-              BTC
-              <ChevronDown size={10} />
-            </button>
-          </div>
+      <form onSubmit={handleSubmit} className="flex flex-col space-y-2 min-h-0" style={{ paddingTop: '15px', paddingBottom: '15px' }}>
+        {/* Size Input - Label and dropdown INSIDE the input */}
+        <div className="relative">
           <input
             type="number"
             step="0.0001"
             value={orderSize}
             onChange={(e) => setOrderSize(e.target.value)}
             placeholder="0.00"
-            className="w-full px-2.5 py-2 bg-white/5 border border-white/10 rounded text-xs text-white placeholder-white/30 focus:outline-none focus:border-[#50d2c1]/50"
+            className="w-full pl-12 pr-16 bg-white/5 border border-white/10 rounded text-[9px] font-extralight text-white placeholder-white/30 focus:outline-none focus:border-[#50d2c1]/50"
+            style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
             required
           />
+          {/* Size label inside input on left */}
+          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extralight text-white/70 pointer-events-none">
+            Size
+          </span>
+          {/* BTC dropdown inside input on right */}
+          <button
+            type="button"
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-extralight text-white/70 hover:text-white flex items-center gap-0.5 px-1 py-0.5 rounded hover:bg-white/5"
+          >
+            BTC
+            <ChevronDown size={8} />
+          </button>
         </div>
 
         {/* Size Slider and Percentage */}
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <div className="relative">
             <input
               type="range"
@@ -213,86 +230,88 @@ export function OrderForm() {
               max="100"
               value={sizePercent}
               onChange={(e) => handleSizePercentChange(Number(e.target.value))}
-              className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer slider"
+              className="w-full h-0.5 bg-white/10 rounded-lg appearance-none cursor-pointer slider"
               style={{
                 background: `linear-gradient(to right, #50d2c1 0%, #50d2c1 ${sizePercent}%, rgba(255,255,255,0.1) ${sizePercent}%, rgba(255,255,255,0.1) 100%)`
               }}
             />
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <input
               type="number"
               min="0"
               max="100"
               value={sizePercent}
               onChange={(e) => handleSizePercentChange(Number(e.target.value))}
-              className="w-16 px-1.5 py-1 bg-white/5 border border-white/10 rounded text-xs text-white focus:outline-none focus:border-[#50d2c1]/50"
+              className="w-12 px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] text-white focus:outline-none focus:border-[#50d2c1]/50"
             />
-            <span className="text-xs text-white/50">%</span>
+            <span className="text-[10px] text-white/50">%</span>
           </div>
         </div>
 
         {/* Checkboxes */}
-        <div className="space-y-2">
-          <label className="flex items-center gap-2 cursor-pointer">
+        <div className="space-y-1">
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               checked={reduceOnly}
               onChange={(e) => setReduceOnly(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-white/20 bg-white/5 text-[#50d2c1] focus:ring-[#50d2c1] focus:ring-offset-0"
+              className="w-3 h-3 rounded border-white/20 bg-white/5 text-[#50d2c1] focus:ring-[#50d2c1] focus:ring-offset-0"
             />
-            <span className="text-xs text-white/70">Reduce Only</span>
+            <span className="text-[10px] text-white/70">Reduce Only</span>
           </label>
-          <label className="flex items-center gap-2 cursor-pointer">
+          <label className="flex items-center gap-1.5 cursor-pointer">
             <input
               type="checkbox"
               checked={takeProfitStopLoss}
               onChange={(e) => setTakeProfitStopLoss(e.target.checked)}
-              className="w-3.5 h-3.5 rounded border-white/20 bg-white/5 text-[#50d2c1] focus:ring-[#50d2c1] focus:ring-offset-0"
+              className="w-3 h-3 rounded border-white/20 bg-white/5 text-[#50d2c1] focus:ring-[#50d2c1] focus:ring-offset-0"
             />
-            <span className="text-xs text-white/70">Take Profit / Stop Loss</span>
+            <span className="text-[10px] text-white/70">Take Profit / Stop Loss</span>
           </label>
         </div>
 
-        {/* Connect/Submit Button */}
-        {!isZtarknetReady || !ztarknetAccount ? (
-          <button
-            type="button"
-            onClick={() => toast.info('Please connect your wallet first')}
-            className="w-full py-3 rounded text-xs font-medium transition-all bg-[#50d2c1] hover:bg-[#50d2c1]/90 text-[#0f1a1f] mt-auto"
-          >
-            Connect
-          </button>
-        ) : (
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className={`w-full py-3 rounded text-xs font-medium transition-all mt-auto ${
-              orderSide === 'long'
-                ? 'bg-[#50d2c1] hover:bg-[#50d2c1]/90 text-[#0f1a1f]'
-                : 'bg-red-500 hover:bg-red-600 text-white'
-            } disabled:opacity-50 disabled:cursor-not-allowed`}
-          >
-            {isSubmitting ? 'Submitting...' : `${orderSide === 'long' ? 'Buy' : 'Sell'} ${orderType === 'market' ? 'Market' : 'Limit'}`}
-          </button>
-        )}
-
-        {/* Trade Information */}
-        <div className="space-y-1.5 pt-2 border-t border-white/10 mt-auto">
-          <div className="flex justify-between text-xs">
-            <span className="text-white/50">Liquidation Price</span>
-            <span className="text-white/70">N/A</span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-white/50">Order Value</span>
-            <span className="text-white/70">N/A</span>
-          </div>
-          <div className="flex justify-between text-xs">
-            <span className="text-white/50">Slippage</span>
-            <span className="text-white/70">Est: 0% / Max: 8.00%</span>
-          </div>
+        {/* Connect/Submit Button - Smaller text, white text, reduced height, 35-40px margin top */}
+        <div style={{ marginTop: '37px', paddingBottom: '15px' }} className="flex-shrink-0">
+          {!isZtarknetReady || !ztarknetAccount ? (
+            <button
+              type="button"
+              onClick={() => toast.info('Please connect your wallet first')}
+              className="w-full py-1.5 rounded text-[9px] font-extralight transition-all bg-[#50d2c1] hover:bg-[#50d2c1]/90"
+            >
+              Connect
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className={`w-full py-1.5 rounded text-[9px] font-extralight transition-all ${
+                orderSide === 'long'
+                  ? 'bg-[#50d2c1] hover:bg-[#50d2c1]/90 text-white'
+                  : 'bg-red-500 hover:bg-red-600 text-white'
+              } disabled:opacity-50 disabled:cursor-not-allowed`}
+            >
+              {isSubmitting ? 'Submitting...' : `${orderSide === 'long' ? 'Buy' : 'Sell'} ${orderType === 'market' ? 'Market' : 'Limit'}`}
+            </button>
+          )}
         </div>
       </form>
+
+      {/* Trade Information - At the bottom of the order form, padding top and bottom for each */}
+      <div className="space-y-0 border-t border-white/10 flex-shrink-0" style={{ paddingTop: '15px', paddingBottom: '15px' }}>
+        <div className="flex justify-between text-[10px] py-1">
+          <span className="text-white/50">Liquidation Price</span>
+          <span className="text-white/70">N/A</span>
+        </div>
+        <div className="flex justify-between text-[10px] py-1">
+          <span className="text-white/50">Order Value</span>
+          <span className="text-white/70">N/A</span>
+        </div>
+        <div className="flex justify-between text-[10px] py-1">
+          <span className="text-white/50">Slippage</span>
+          <span className="text-white/70">Est: 0% / Max: 8.00%</span>
+        </div>
+      </div>
     </div>
   );
 }

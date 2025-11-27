@@ -130,9 +130,9 @@ export function TradingInterface() {
           </div>
         </div>
 
-        {/* Right: Trading Panel - 70% of device height */}
-        <div className="w-80 flex flex-col border-l border-[rgba(255,255,255,0.1)]" style={{ height: '70vh' }}>
-          <div className="flex-1 overflow-y-auto p-3">
+        {/* Right: Trading Panel */}
+        <div className="w-80 flex flex-col border-l border-[rgba(255,255,255,0.1)] overflow-y-auto">
+          <div className="p-2">
             <OrderForm />
           </div>
         </div>

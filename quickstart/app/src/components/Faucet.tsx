@@ -55,7 +55,10 @@ export default function Faucet() {
   const connectWallet = async () => {
     try {
       setFaucetState({ status: 'connecting', message: 'Connecting wallet...' });
-      const starknet = await connect();
+      const starknet = await connect({
+        modalMode: 'alwaysAsk',
+        modalTheme: 'dark'
+      });
       
       if (!starknet) {
         throw new Error('No wallet found. Please install Argent or Braavos wallet.');

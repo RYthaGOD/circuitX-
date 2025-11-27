@@ -16,29 +16,32 @@ interface ZtarknetWalletModalProps {
   isOpen: boolean;
   onClose: () => void;
   onWalletReady: (account: any) => void;
+  ownerAddress?: string | null;
 }
 
 export function ZtarknetWalletModal({
   isOpen,
   onClose,
   onWalletReady,
+  ownerAddress,
 }: ZtarknetWalletModalProps) {
   const [wallet, setWallet] = useState<ZtarknetWallet | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const sepoliaAccount = useTradingStore((state) => state.sepoliaAccount);
+  const ownerKey = ownerAddress ?? sepoliaAccount?.address ?? null;
 
   useEffect(() => {
     if (isOpen) {
       // Try to load existing wallet
-      const existing = loadZtarknetWallet();
+      const existing = loadZtarknetWallet(ownerKey);
       if (existing) {
         setWallet(existing);
         checkDeployment(existing);
       }
     }
-  }, [isOpen]);
+  }, [isOpen, ownerKey]);
 
   const checkDeployment = async (walletData: ZtarknetWallet) => {
     setIsChecking(true);
@@ -46,7 +49,7 @@ export function ZtarknetWalletModal({
       const deployed = await isWalletDeployed(walletData.address);
       if (deployed) {
         setWallet({ ...walletData, deployed: true });
-        saveZtarknetWallet({ ...walletData, deployed: true });
+        saveZtarknetWallet({ ...walletData, deployed: true }, ownerKey);
         
         // Create account and notify parent
         const account = createZtarknetAccount({ ...walletData, deployed: true });
@@ -62,7 +65,7 @@ export function ZtarknetWalletModal({
   const handleGenerate = async () => {
     setIsGenerating(true);
     try {
-      const newWallet = generateZtarknetWallet();
+      const newWallet = generateZtarknetWallet(ownerKey);
       setWallet(newWallet);
       toast.success('Ztarknet wallet generated!');
       
@@ -76,7 +79,7 @@ export function ZtarknetWalletModal({
   };
 
   const handleCopy = (text: string, label: string) => {
-    navigator.clipboard.writeText(text);
+      navigator.clipboard.writeText(text);
     setCopied(label);
     toast.success(`${label} copied!`);
     setTimeout(() => setCopied(null), 2000);

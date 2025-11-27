@@ -20,7 +20,7 @@ export interface Order {
   isLong: boolean;
   size: string;
   price: string;
-  orderType: 'market' | 'limit';
+  orderType: 'market' | 'limit' | 'twap';
   status: 'pending' | 'filled' | 'cancelled';
   timestamp: number;
 }
@@ -48,7 +48,7 @@ interface TradingState {
   markets: MarketData[];
   
   // UI State
-  orderType: 'market' | 'limit';
+  orderType: 'market' | 'limit' | 'twap';
   orderSide: 'long' | 'short';
   orderSize: string;
   orderPrice: string;
@@ -65,7 +65,7 @@ interface TradingState {
   updateOrder: (id: string, updates: Partial<Order>) => void;
   setMarkets: (markets: MarketData[]) => void;
   updateMarketPrice: (marketId: string, price: string) => void;
-  setOrderType: (type: 'market' | 'limit') => void;
+  setOrderType: (type: 'market' | 'limit' | 'twap') => void;
   setOrderSide: (side: 'long' | 'short') => void;
   setOrderSize: (size: string) => void;
   setOrderPrice: (price: string) => void;

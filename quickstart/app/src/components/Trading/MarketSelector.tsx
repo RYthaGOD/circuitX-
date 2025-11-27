@@ -1,16 +1,46 @@
 import { useTradingStore } from '../../stores/tradingStore';
 import { MARKETS, MARKET_INFO } from '../../config/contracts';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchPythPrice } from '../../services/pythService';
+import { ChevronDown } from 'lucide-react';
 
 export function MarketSelector() {
   const selectedMarket = useTradingStore((state) => state.selectedMarket);
   const setSelectedMarket = useTradingStore((state) => state.setSelectedMarket);
   const markets = useTradingStore((state) => state.markets);
   const setMarkets = useTradingStore((state) => state.setMarkets);
-  const updateMarketPrice = useTradingStore((state) => state.updateMarketPrice);
+  const [fundingCountdown, setFundingCountdown] = useState('00:00:00');
 
   const currentMarket = markets.find((m) => m.marketId === selectedMarket);
+
+  // Mock data for 24h volume
+  const mockVolume24h = 3231779581.83;
+  const mockOpenInterest = 2331160196.93;
+  const mockPriceChange24h = 3931;
+  const mockPriceChangePercent = 4.51;
+  const mockFundingRate = 0.0008;
+
+  // Countdown timer for funding
+  useEffect(() => {
+    const updateCountdown = () => {
+      const now = new Date();
+      const nextHour = new Date(now);
+      nextHour.setHours(now.getHours() + 1, 0, 0, 0);
+      const diff = nextHour.getTime() - now.getTime();
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+      
+      setFundingCountdown(
+        `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+      );
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch prices from Pyth Network - only BTC/USD for now
   useEffect(() => {
@@ -26,9 +56,9 @@ export function MarketSelector() {
               marketId,
               symbol: MARKET_INFO[marketId as keyof typeof MARKET_INFO]?.symbol || key,
               currentPrice: price,
-              priceChange24h: '0', // TODO: Calculate from historical data
-              volume24h: '0', // Not available from Pyth free tier
-              openInterest: '0', // Not available from Pyth free tier
+              priceChange24h: mockPriceChangePercent.toString(),
+              volume24h: mockVolume24h.toString(),
+              openInterest: mockOpenInterest.toString(),
             };
           } catch (error) {
             // Silently handle errors and return default data
@@ -36,9 +66,9 @@ export function MarketSelector() {
               marketId,
               symbol: MARKET_INFO[marketId as keyof typeof MARKET_INFO]?.symbol || key,
               currentPrice: '0',
-              priceChange24h: '0',
-              volume24h: '0',
-              openInterest: '0',
+              priceChange24h: mockPriceChangePercent.toString(),
+              volume24h: mockVolume24h.toString(),
+              openInterest: mockOpenInterest.toString(),
             };
           }
         });
@@ -62,102 +92,109 @@ export function MarketSelector() {
     return () => clearInterval(interval);
   }, [setMarkets]);
 
+  const formatPrice = (price: string | undefined): string => {
+    try {
+      const num = parseFloat(price || '0');
+      return isNaN(num) ? '0' : Math.round(num).toLocaleString();
+    } catch {
+      return '0';
+    }
+  };
+
+  const formatLargeNumber = (value: string | undefined): string => {
+    try {
+      const num = parseFloat(value || '0');
+      return isNaN(num) ? '0' : num.toLocaleString(undefined, { maximumFractionDigits: 2, minimumFractionDigits: 2 });
+    } catch {
+      return '0';
+    }
+  };
+
   return (
-    <div className="flex items-center justify-between px-2 py-1.5 border-b border-[rgba(255,255,255,0.1)] bg-[#0f1a1f]">
-      {/* Market Selector - Only BTC/USD for now */}
-      <div className="flex items-center gap-2">
-        {[MARKETS.BTC_USD].map((marketId) => {
-          const info = MARKET_INFO[marketId as keyof typeof MARKET_INFO];
-          if (!info) return null;
+    <div className="px-2 py-2">
+      <div className="bg-[#0f1a1f] rounded border border-[rgba(255,255,255,0.1)] px-3 py-2">
+        <div className="flex items-center justify-between">
+          {/* Left: Market Selector with BTC Logo */}
+          <div className="flex items-center gap-2">
+            {[MARKETS.BTC_USD].map((marketId) => {
+              const info = MARKET_INFO[marketId as keyof typeof MARKET_INFO];
+              if (!info) return null;
 
-          const isSelected = selectedMarket === marketId;
+              return (
+                <button
+                  key={marketId}
+                  onClick={() => setSelectedMarket(marketId)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-all group"
+                >
+                  {/* BTC Logo - Orange circle with Bitcoin symbol */}
+                  <div className="w-6 h-6 rounded-full bg-[#f7931a] flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">₿</span>
+                  </div>
+                  <span className="text-sm font-medium text-white">BTC-USDC</span>
+                  <ChevronDown size={14} className="text-white/70 group-hover:text-white transition-colors" />
+                </button>
+              );
+            })}
+          </div>
 
-          return (
-            <button
-              key={marketId}
-              onClick={() => setSelectedMarket(marketId)}
-              className={`px-2 py-1 rounded text-xs font-medium transition-all ${
-                isSelected
-                  ? 'bg-[#50d2c1]/20 text-[#50d2c1]'
-                  : 'text-white/70 hover:text-white hover:bg-white/5'
-              }`}
-            >
-              {info.symbol}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Market Stats */}
-      {currentMarket && currentMarket.currentPrice && (
-        <div className="flex items-center gap-6 text-xs">
-          <div>
-            <span className="text-white/50">Mark: </span>
-            <span className="text-white font-medium">
-              {(() => {
-                try {
-                  const price = parseFloat(currentMarket.currentPrice || '0');
-                  return isNaN(price) ? '0' : price.toLocaleString(undefined, { maximumFractionDigits: 2 });
-                } catch {
-                  return '0';
-                }
-              })()}
-            </span>
-          </div>
-          <div>
-            <span className="text-white/50">Oracle: </span>
-            <span className="text-white font-medium">
-              {(() => {
-                try {
-                  const price = parseFloat(currentMarket.currentPrice || '0');
-                  return isNaN(price) ? '0' : price.toLocaleString(undefined, { maximumFractionDigits: 2 });
-                } catch {
-                  return '0';
-                }
-              })()}
-            </span>
-          </div>
-          <div>
-            <span className="text-white/50">24h Change: </span>
-            <span className="text-[#50d2c1] font-medium">
-              +{(() => {
-                try {
-                  const change = parseFloat(currentMarket.priceChange24h || '0');
-                  return isNaN(change) ? '0.00' : change.toFixed(2);
-                } catch {
-                  return '0.00';
-                }
-              })()}%
-            </span>
-          </div>
-          <div>
-            <span className="text-white/50">24h Volume: </span>
-            <span className="text-white font-medium">
-              ${(() => {
-                try {
-                  const volume = parseFloat(currentMarket.volume24h || '0');
-                  return isNaN(volume) ? '0' : volume.toLocaleString(undefined, { maximumFractionDigits: 0 });
-                } catch {
-                  return '0';
-                }
-              })()}
-            </span>
-          </div>
-          <div>
-            <span className="text-white/50">Open Interest: </span>
-            <span className="text-white font-medium">
-              ${(() => {
-                try {
-                  const oi = parseFloat(currentMarket.openInterest || '0');
-                  return isNaN(oi) ? '0' : oi.toLocaleString(undefined, { maximumFractionDigits: 0 });
-                } catch {
-                  return '0';
-                }
-              })()}
-            </span>
-          </div>
+          {/* Right: Market Stats */}
+          {currentMarket && currentMarket.currentPrice && (
+            <div className="flex items-center gap-8 text-xs">
+              <div className="flex flex-col">
+                <span className="text-white/50 text-[10px] mb-0.5 underline">Mark</span>
+                <span className="text-white font-medium text-sm">
+                  {formatPrice(currentMarket.currentPrice)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white/50 text-[10px] mb-0.5 underline">Oracle</span>
+                <span className="text-white font-medium text-sm">
+                  {(() => {
+                    const markPrice = parseFloat(currentMarket.currentPrice || '0');
+                    // Oracle price is slightly different (like in the image: Mark 91,168 vs Oracle 91,206)
+                    const oraclePrice = markPrice + (markPrice * 0.0004); // ~0.04% difference
+                    return formatPrice(oraclePrice.toString());
+                  })()}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white/50 text-[10px] mb-0.5">24h Change</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#50d2c1] font-medium text-sm">
+                    +{mockPriceChange24h.toLocaleString()}
+                  </span>
+                  <span className="text-[#50d2c1] font-medium text-sm">
+                    +{mockPriceChangePercent.toFixed(2)}%
+                  </span>
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white/50 text-[10px] mb-0.5">24h Volume</span>
+                <span className="text-white font-medium text-sm">
+                  ${formatLargeNumber(currentMarket.volume24h)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white/50 text-[10px] mb-0.5 underline">Open Interest</span>
+                <span className="text-white font-medium text-sm">
+                  ${formatLargeNumber(currentMarket.openInterest)}
+                </span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-white/50 text-[10px] mb-0.5 underline">Funding / Countdown</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-[#50d2c1] font-medium text-sm">
+                    {mockFundingRate.toFixed(4)}%
+                  </span>
+                  <span className="text-white/70 font-medium text-sm">
+                    {fundingCountdown}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
