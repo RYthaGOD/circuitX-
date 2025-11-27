@@ -16,7 +16,10 @@ import acvm from "@noir-lang/acvm_js/web/acvm_js_bg.wasm?url";
 import noirc from "@noir-lang/noirc_abi/web/noirc_abi_wasm_bg.wasm?url";
 import Faucet from './components/Faucet';
 import { TradingInterface } from './components/Trading/TradingInterface';
+import { Portfolio } from './components/Portfolio/Portfolio';
 import { ErrorBoundary } from './components/ErrorBoundary';
+import { useTradingStore } from './stores/tradingStore';
+import { MARKET_INFO } from './config/contracts';
 
 function App() {
   const [proofState, setProofState] = useState<ProofStateData>({
@@ -186,13 +189,44 @@ function App() {
     return states.indexOf(state);
   };
 
-  const [currentPage, setCurrentPage] = useState<'proof' | 'faucet' | 'trading'>('trading');
+  const [currentPage, setCurrentPage] = useState<'proof' | 'faucet' | 'trading' | 'portfolio'>('trading');
+  
+  // Update page title with current market price
+  const selectedMarket = useTradingStore((state) => state.selectedMarket);
+  const markets = useTradingStore((state) => state.markets);
+  
+  useEffect(() => {
+    if (currentPage === 'trading') {
+      const currentMarket = markets.find((m) => m.marketId === selectedMarket);
+      const marketInfo = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO];
+      const marketSymbol = marketInfo?.symbol?.split('/')[0] || 'BTC';
+      
+      if (currentMarket?.currentPrice) {
+        const price = parseFloat(currentMarket.currentPrice);
+        const formattedPrice = price.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        });
+        document.title = `${formattedPrice} | ${marketSymbol} | Circuit`;
+      } else {
+        document.title = `91,168 | BTC | Circuit`;
+      }
+    } else if (currentPage === 'portfolio') {
+      document.title = `Portfolio | Circuit`;
+    } else {
+      document.title = `Circuit - Private Perpetual DEX`;
+    }
+  }, [currentPage, selectedMarket, markets]);
 
   return (
     <>
       {currentPage === 'trading' ? (
         <ErrorBoundary>
-          <TradingInterface />
+          <TradingInterface onNavigate={(page) => setCurrentPage(page)} />
+        </ErrorBoundary>
+      ) : currentPage === 'portfolio' ? (
+        <ErrorBoundary>
+          <Portfolio onNavigate={(page) => setCurrentPage(page)} />
         </ErrorBoundary>
       ) : (
         <div className="container">
@@ -219,6 +253,12 @@ function App() {
               onClick={() => setCurrentPage('trading')}
             >
               Trading
+            </button>
+            <button 
+              className={currentPage === 'portfolio' ? 'active' : ''}
+              onClick={() => setCurrentPage('portfolio')}
+            >
+              Portfolio
             </button>
             <button 
               className={currentPage === 'faucet' ? 'active' : ''}

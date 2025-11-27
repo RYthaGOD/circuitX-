@@ -2,6 +2,8 @@ import { useState } from 'react';
 import { useTradingStore } from '../../stores/tradingStore';
 import { ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
+import { formatYusdBalance } from '../../lib/balanceUtils';
+import '../../App.css';
 
 export function OrderForm() {
   const {
@@ -18,6 +20,7 @@ export function OrderForm() {
     resetOrderForm,
     isZtarknetReady,
     ztarknetAccount,
+    availableBalance,
   } = useTradingStore();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,152 +72,103 @@ export function OrderForm() {
 
   const handleSizePercentChange = (percent: number) => {
     setSizePercent(percent);
-    // Calculate size based on available balance (mock for now)
-    const availableBalance = 0; // TODO: Get from store
-    if (availableBalance > 0) {
-      const calculatedSize = (availableBalance * percent) / 100;
-      setOrderSize(calculatedSize.toFixed(4));
-    }
+    // Size calculation can be implemented later when balance fetching is re-added
   };
 
   return (
-    <div className="bg-[#0f1a1f] rounded border border-[rgba(255,255,255,0.1)] p-3 flex flex-col">
-      {/* Top Controls: Cross, 20x, One-Way - Centered with equal padding, smaller buttons and text */}
-      <div className="flex justify-center gap-1 pt-8">
+    <div className="order-form-container">
+      {/* Top Controls: Cross, 20x, One-Way */}
+      <div className="order-form-top-controls">
         <button
           onClick={() => setMarginMode('cross')}
-          className={`px-1 py-0.5 rounded-full text-[8px] font-extralight transition-all ${
-            marginMode === 'cross'
-              ? 'bg-white/10 text-white'
-              : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
-          }`}
+          className={`order-form-control-btn ${marginMode === 'cross' ? 'active' : ''}`}
         >
           Cross
         </button>
         <button
           onClick={() => setLeverage('20x')}
-          className={`px-1 py-0.5 rounded-full text-[8px] font-extralight transition-all ${
-            leverage === '20x'
-              ? 'bg-white/10 text-white'
-              : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
-          }`}
+          className={`order-form-control-btn ${leverage === '20x' ? 'active' : ''}`}
         >
           20x
         </button>
         <button
           onClick={() => setPositionMode('one-way')}
-          className={`px-1 py-0.5 rounded-full text-[8px] font-extralight transition-all ${
-            positionMode === 'one-way'
-              ? 'bg-white/10 text-white'
-              : 'bg-white/5 text-white/70 hover:text-white hover:bg-white/10'
-          }`}
+          className={`order-form-control-btn ${positionMode === 'one-way' ? 'active' : ''}`}
         >
           One-Way
         </button>
       </div>
 
-      {/* Order Type Tabs: Market, Limit, TWAP - Smaller text, light font, underline for active */}
-      <div className="flex items-center justify-center gap-2" style={{ paddingTop: '7px', paddingBottom: '7px' }}>
+      {/* Order Type Tabs: Market, Limit, TWAP */}
+      <div className="order-form-type-tabs">
         <button
           onClick={() => setOrderType('market')}
-          className={`px-1 py-0.5 text-[5px] font-extralight transition-all ${
-            orderType === 'market'
-              ? 'text-[#50d2c1] border-b border-[#50d2c1]'
-              : 'text-white/70 hover:text-white'
-          }`}
+          className={`order-form-type-tab ${orderType === 'market' ? 'active' : ''}`}
         >
           Market
         </button>
         <button
           onClick={() => setOrderType('limit')}
-          className={`px-1 py-0.5 text-[5px] font-extralight transition-all ${
-            orderType === 'limit'
-              ? 'text-[#50d2c1] border-b border-[#50d2c1]'
-              : 'text-white/70 hover:text-white'
-          }`}
+          className={`order-form-type-tab ${orderType === 'limit' ? 'active' : ''}`}
         >
           Limit
         </button>
         <button 
           onClick={() => setOrderType('twap')}
-          className={`px-1 py-0.5 text-[5px] font-extralight flex items-center gap-0.5 transition-all ${
-            orderType === 'twap'
-              ? 'text-[#50d2c1] border-b border-[#50d2c1]'
-              : 'text-white/70 hover:text-white'
-          }`}
+          className={`order-form-type-tab ${orderType === 'twap' ? 'active' : ''}`}
         >
           TWAP
         </button>
       </div>
 
       {/* Long/Short Toggle - Sliding switch effect */}
-      <div className="relative flex gap-0.5 p-0.5 bg-white/5 rounded-4xl" style={{ marginTop: '8px' }}>
+      <div className="order-form-toggle-container">
+        <div className={`order-form-toggle-slider ${orderSide === 'short' ? 'right' : ''}`} />
         <button
           onClick={() => setOrderSide('long')}
-          className={`relative flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-4xl text-[7px] font-extralight transition-all z-10 ${
-            orderSide === 'long'
-              ? 'text-[#0f1a1f]'
-              : 'text-white/70 hover:text-white'
-          }`}
+          className={`order-form-toggle-btn ${orderSide === 'long' ? 'active' : ''}`}
         >
           <ArrowUp size={12} />
           Buy / Long
         </button>
         <button
           onClick={() => setOrderSide('short')}
-          className={`relative flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-4xl text-[7px] font-extralight transition-all z-10 ${
-            orderSide === 'short'
-              ? 'text-white'
-              : 'text-white/70 hover:text-white'
-          }`}
+          className={`order-form-toggle-btn ${orderSide === 'short' ? 'active' : ''}`}
         >
           <ArrowDown size={12} />
           Sell / Short
         </button>
-        {/* Sliding background */}
-        <div
-          className={`absolute top-0.5 bottom-0.5 w-[calc(50%-0.25rem)] rounded transition-all duration-200 ${
-            orderSide === 'long'
-              ? 'left-0.5 bg-[#50d2c1]'
-              : 'left-[calc(50%+0.25rem)] bg-red-500'
-          }`}
-        />
       </div>
 
       {/* Account Info */}
-      <div className="text-[12px] text-white/50 space-y-0.5" style={{ paddingTop: '8px', paddingBottom: '8px' }}>
-        <div className="flex justify-between">
+      <div className="order-form-account-info">
+        <div className="order-form-account-row">
           <span>Available to Trade:</span>
-          <span>0.00 yUSD</span>
+          <span>{availableBalance ? `${formatYusdBalance(availableBalance)} yUSD` : '0.00 yUSD'}</span>
         </div>
-        <div className="flex pt-4 justify-between">
+        <div className="order-form-account-row">
           <span>Current Position:</span>
           <span>0.000 BTC</span>
         </div>
       </div>
 
       {/* Order Form */}
-      <form onSubmit={handleSubmit} className="flex flex-col space-y-2 min-h-0" style={{ paddingTop: '15px', paddingBottom: '15px' }}>
+      <form onSubmit={handleSubmit} className="order-form-form">
         {/* Size Input - Label and dropdown INSIDE the input */}
-        <div className="relative">
+        <div className="order-form-size-input-container">
           <input
             type="number"
             step="0.0001"
             value={orderSize}
             onChange={(e) => setOrderSize(e.target.value)}
             placeholder="0.00"
-            className="w-full pl-12 pr-16 bg-white/5 border border-white/10 rounded text-[9px] font-extralight text-white placeholder-white/30 focus:outline-none focus:border-[#50d2c1]/50"
-            style={{ height: '48px', paddingTop: '12px', paddingBottom: '12px' }}
+            className="order-form-size-input"
             required
           />
-          {/* Size label inside input on left */}
-          <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-extralight text-white/70 pointer-events-none">
-            Size
-          </span>
-          {/* BTC dropdown inside input on right */}
+          <span className="order-form-size-label">Size</span>
           <button
             type="button"
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-extralight text-white/70 hover:text-white flex items-center gap-0.5 px-1 py-0.5 rounded hover:bg-white/5"
+            className="order-form-size-dropdown"
           >
             BTC
             <ChevronDown size={8} />
@@ -222,62 +176,60 @@ export function OrderForm() {
         </div>
 
         {/* Size Slider and Percentage */}
-        <div className="space-y-1">
-          <div className="relative">
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={sizePercent}
-              onChange={(e) => handleSizePercentChange(Number(e.target.value))}
-              className="w-full h-0.5 bg-white/10 rounded-lg appearance-none cursor-pointer slider"
-              style={{
-                background: `linear-gradient(to right, #50d2c1 0%, #50d2c1 ${sizePercent}%, rgba(255,255,255,0.1) ${sizePercent}%, rgba(255,255,255,0.1) 100%)`
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-1.5">
+        <div className="order-form-slider-container">
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={sizePercent}
+            onChange={(e) => handleSizePercentChange(Number(e.target.value))}
+            className="order-form-slider"
+            style={{
+              background: `linear-gradient(to right, #50d2c1 0%, #50d2c1 ${sizePercent}%, rgba(255,255,255,0.1) ${sizePercent}%, rgba(255,255,255,0.1) 100%)`
+            }}
+          />
+          <div className="order-form-percent-row">
             <input
               type="number"
               min="0"
               max="100"
               value={sizePercent}
               onChange={(e) => handleSizePercentChange(Number(e.target.value))}
-              className="w-12 px-1 py-0.5 bg-white/5 border border-white/10 rounded text-[10px] text-white focus:outline-none focus:border-[#50d2c1]/50"
+              className="order-form-percent-input"
             />
-            <span className="text-[10px] text-white/50">%</span>
+            <span className="order-form-percent-label">%</span>
           </div>
         </div>
 
         {/* Checkboxes */}
-        <div className="space-y-1">
-          <label className="flex items-center gap-1.5 cursor-pointer">
+        <div className="order-form-checkboxes">
+          <label className="order-form-checkbox-label">
             <input
               type="checkbox"
               checked={reduceOnly}
               onChange={(e) => setReduceOnly(e.target.checked)}
-              className="w-3 h-3 rounded border-white/20 bg-white/5 text-[#50d2c1] focus:ring-[#50d2c1] focus:ring-offset-0"
+              className="order-form-checkbox"
             />
-            <span className="text-[10px] text-white/70">Reduce Only</span>
+            <span className="order-form-checkbox-label-text">Reduce Only</span>
           </label>
-          <label className="flex items-center gap-1.5 cursor-pointer">
+          <label className="order-form-checkbox-label">
             <input
               type="checkbox"
               checked={takeProfitStopLoss}
               onChange={(e) => setTakeProfitStopLoss(e.target.checked)}
-              className="w-3 h-3 rounded border-white/20 bg-white/5 text-[#50d2c1] focus:ring-[#50d2c1] focus:ring-offset-0"
+              className="order-form-checkbox"
             />
-            <span className="text-[10px] text-white/70">Take Profit / Stop Loss</span>
+            <span className="order-form-checkbox-label-text">Take Profit / Stop Loss</span>
           </label>
         </div>
 
-        {/* Connect/Submit Button - Smaller text, white text, reduced height, 35-40px margin top */}
-        <div style={{ marginTop: '37px', paddingBottom: '15px' }} className="flex-shrink-0">
+        {/* Connect/Submit Button */}
+        <div className="order-form-submit-container">
           {!isZtarknetReady || !ztarknetAccount ? (
             <button
               type="button"
               onClick={() => toast.info('Please connect your wallet first')}
-              className="w-full py-1.5 rounded text-[9px] font-extralight transition-all bg-[#50d2c1] hover:bg-[#50d2c1]/90"
+              className="order-form-submit-btn"
             >
               Connect
             </button>
@@ -285,11 +237,7 @@ export function OrderForm() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full py-1.5 rounded text-[9px] font-extralight transition-all ${
-                orderSide === 'long'
-                  ? 'bg-[#50d2c1] hover:bg-[#50d2c1]/90 text-white'
-                  : 'bg-red-500 hover:bg-red-600 text-white'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
+              className={`order-form-submit-btn ${orderSide === 'short' ? 'sell' : ''}`}
             >
               {isSubmitting ? 'Submitting...' : `${orderSide === 'long' ? 'Buy' : 'Sell'} ${orderType === 'market' ? 'Market' : 'Limit'}`}
             </button>
@@ -297,22 +245,21 @@ export function OrderForm() {
         </div>
       </form>
 
-      {/* Trade Information - At the bottom of the order form, padding top and bottom for each */}
-      <div className="space-y-0 border-t border-white/10 flex-shrink-0" style={{ paddingTop: '15px', paddingBottom: '15px' }}>
-        <div className="flex justify-between text-[10px] py-1">
-          <span className="text-white/50">Liquidation Price</span>
-          <span className="text-white/70">N/A</span>
+      {/* Trade Information */}
+      <div className="order-form-trade-info">
+        <div className="order-form-trade-info-row">
+          <span className="order-form-trade-info-label">Liquidation Price</span>
+          <span className="order-form-trade-info-value">N/A</span>
         </div>
-        <div className="flex justify-between text-[10px] py-1">
-          <span className="text-white/50">Order Value</span>
-          <span className="text-white/70">N/A</span>
+        <div className="order-form-trade-info-row">
+          <span className="order-form-trade-info-label">Order Value</span>
+          <span className="order-form-trade-info-value">N/A</span>
         </div>
-        <div className="flex justify-between text-[10px] py-1">
-          <span className="text-white/50">Slippage</span>
-          <span className="text-white/70">Est: 0% / Max: 8.00%</span>
+        <div className="order-form-trade-info-row">
+          <span className="order-form-trade-info-label">Slippage</span>
+          <span className="order-form-trade-info-value">Est: 0% / Max: 8.00%</span>
         </div>
       </div>
     </div>
   );
 }
-

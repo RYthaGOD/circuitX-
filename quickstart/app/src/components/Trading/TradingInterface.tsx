@@ -5,18 +5,23 @@ import { PriceChart } from './PriceChart';
 import { useTradingStore } from '../../stores/tradingStore';
 import { Header } from '../Layout/Header';
 import { useState } from 'react';
+import '../../App.css';
 
-export function TradingInterface() {
+interface TradingInterfaceProps {
+  onNavigate?: (page: 'trading' | 'portfolio') => void;
+}
+
+export function TradingInterface({ onNavigate }: TradingInterfaceProps) {
   const positions = useTradingStore((state) => state.positions);
   const [activeTab, setActiveTab] = useState<'orderbook' | 'trades'>('orderbook');
 
   return (
-    <div className="min-h-screen bg-[#0f1a1f] text-white">
-      <Header />
+    <div className="trading-interface-container">
+      <Header currentPage="trading" onNavigate={onNavigate} />
       
-      <div className="flex h-[calc(100vh-48px)]">
+      <div className="trading-interface-layout">
         {/* Left: Chart Area with Positions Below */}
-        <div className="flex-1 flex flex-col min-w-0">
+        <div className="trading-interface-left">
           {/* Market Info Bar */}
           <MarketSelector />
           
@@ -26,14 +31,14 @@ export function TradingInterface() {
           </div>
 
           {/* Positions Panel - Below Chart, Scrollable */}
-          <div className="border-t border-[rgba(255,255,255,0.1)] p-3 overflow-y-auto" style={{ maxHeight: '40vh' }}>
-            <div className="text-xs font-medium mb-2">Positions</div>
+          <div className="trading-positions-panel">
+            <div className="trading-positions-title">Positions</div>
             {positions.length === 0 ? (
-              <div className="text-xs text-white/50 text-center py-4">
+              <div className="trading-positions-empty">
                 No open positions
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="trading-positions-list">
                 {positions.map((position) => (
                   <PositionCard key={position.commitment} position={position} />
                 ))}
@@ -43,85 +48,104 @@ export function TradingInterface() {
         </div>
 
         {/* Middle: Order Book / Trades */}
-        <div className="w-72 border-l border-r border-[rgba(255,255,255,0.1)] flex flex-col">
-          {/* Order Book / Trades Tabs */}
-          <div className="flex border-b border-[rgba(255,255,255,0.1)]">
-            <button 
-              onClick={() => setActiveTab('orderbook')}
-              className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === 'orderbook'
-                  ? 'text-[#50d2c1] border-b-2 border-[#50d2c1]'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              Order Book
-            </button>
-            <button 
-              onClick={() => setActiveTab('trades')}
-              className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors ${
-                activeTab === 'trades'
-                  ? 'text-[#50d2c1] border-b-2 border-[#50d2c1]'
-                  : 'text-white/70 hover:text-white'
-              }`}
-            >
-              Trades
-            </button>
+        <div className="orderbook-container">
+          {/* Order Book / Trades Header */}
+          <div className="orderbook-header">
+            <div className="orderbook-tabs">
+              <button 
+                onClick={() => setActiveTab('orderbook')}
+                className={`orderbook-tab ${activeTab === 'orderbook' ? 'active' : ''}`}
+              >
+                Order Book
+              </button>
+              <button 
+                onClick={() => setActiveTab('trades')}
+                className={`orderbook-tab ${activeTab === 'trades' ? 'active' : ''}`}
+              >
+                Trades
+              </button>
+            </div>
           </div>
 
           {/* Order Book / Trades Content */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="orderbook-content">
             {activeTab === 'orderbook' ? (
-              <div className="p-1">
-                <div className="text-xs text-white/50 mb-1 flex justify-between px-1">
+              <div className="orderbook-body">
+                <div className="orderbook-column-headers">
                   <span>Price</span>
-                  <span>Size</span>
-                  <span>Total</span>
+                  <span>Size (BTC)</span>
+                  <span>Total (BTC)</span>
                 </div>
-                {/* Sell Orders */}
-                <div className="space-y-0.5 mb-1">
-                  {[90.204, 90.203, 90.202, 90.201, 90.200, 90.199, 90.198, 90.197].map((price, i) => (
-                    <div key={i} className="flex justify-between text-xs hover:bg-white/5 px-1 py-0.5 rounded">
-                      <span className="text-red-400">{price.toFixed(3)}</span>
-                      <span className="text-white/70">{(Math.random() * 5).toFixed(5)}</span>
-                      <span className="text-white/50">{(Math.random() * 10).toFixed(5)}</span>
-                    </div>
-                  ))}
+                {/* Sell Orders (Asks) */}
+                <div className="orderbook-asks">
+                  {(() => {
+                    const askPrices = [91.133, 91.132, 91.131, 91.130, 91.129, 91.128, 91.127, 91.126, 91.125, 91.124, 91.123];
+                    const askSizes = askPrices.map(() => Math.random() * 0.002);
+                    let cumulativeTotal = 0;
+                    return askPrices.map((price, i) => {
+                      const size = askSizes[i];
+                      cumulativeTotal += size;
+                      const total = cumulativeTotal.toFixed(5);
+                      return (
+                        <div key={i} className="orderbook-row orderbook-ask-row">
+                          <span className="orderbook-price orderbook-price-ask">{price.toFixed(3)}</span>
+                          <span className="orderbook-size">{size.toFixed(5)}</span>
+                          <span className="orderbook-total">{total}</span>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
-                {/* Current Price */}
-                <div className="flex justify-between text-xs font-medium py-0.5 border-y border-[rgba(255,255,255,0.1)] my-0.5 px-1">
-                  <span className="text-[#50d2c1]">90.196</span>
-                  <span className="text-white/70">0.00000</span>
-                  <span className="text-white/50">0.00000</span>
+                {/* Spread */}
+                <div className="orderbook-spread">
+                  <span>Spread 1 0.001%</span>
                 </div>
-                {/* Buy Orders */}
-                <div className="space-y-0.5">
-                  {[90.195, 90.194, 90.193, 90.192, 90.191, 90.190, 90.189, 90.188].map((price, i) => (
-                    <div key={i} className="flex justify-between text-xs hover:bg-white/5 px-1 py-0.5 rounded">
-                      <span className="text-green-400">{price.toFixed(3)}</span>
-                      <span className="text-white/70">{(Math.random() * 5).toFixed(5)}</span>
-                      <span className="text-white/50">{(Math.random() * 10).toFixed(5)}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="text-xs text-white/50 mt-1 text-center">
-                  Spread 1 0.001%
+                {/* Buy Orders (Bids) */}
+                <div className="orderbook-bids">
+                  {(() => {
+                    const bidPrices = [91.122, 91.121, 91.120, 91.119, 91.118, 91.117, 91.116, 91.115, 91.114, 91.113];
+                    const bidSizes = bidPrices.map(() => Math.random() * 40 + 3);
+                    let cumulativeTotal = 0;
+                    const totals: number[] = [];
+                    bidSizes.forEach((size) => {
+                      cumulativeTotal += size;
+                      totals.push(cumulativeTotal);
+                    });
+                    const maxTotal = Math.max(...totals);
+                    
+                    cumulativeTotal = 0;
+                    return bidPrices.map((price, i) => {
+                      const size = bidSizes[i];
+                      cumulativeTotal += size;
+                      const total = cumulativeTotal.toFixed(5);
+                      const barWidth = (cumulativeTotal / maxTotal) * 100;
+                      return (
+                        <div key={i} className="orderbook-row orderbook-bid-row">
+                          <div className="orderbook-bid-bar" style={{ width: `${barWidth}%` }} />
+                          <span className="orderbook-price orderbook-price-bid">{price.toFixed(3)}</span>
+                          <span className="orderbook-size">{size.toFixed(5)}</span>
+                          <span className="orderbook-total">{total}</span>
+                        </div>
+                      );
+                    });
+                  })()}
                 </div>
               </div>
             ) : (
-              <div className="p-1">
-                <div className="text-xs text-white/50 mb-1 flex justify-between px-1">
+              <div className="orderbook-trades">
+                <div className="orderbook-column-headers">
                   <span>Price</span>
                   <span>Size</span>
                   <span>Time</span>
                 </div>
-                <div className="space-y-0.5">
+                <div className="orderbook-trades-list">
                   {Array.from({ length: 20 }).map((_, i) => (
-                    <div key={i} className="flex justify-between text-xs hover:bg-white/5 px-1 py-0.5 rounded">
-                      <span className={Math.random() > 0.5 ? 'text-green-400' : 'text-red-400'}>
-                        {(90.190 + Math.random() * 0.02).toFixed(3)}
+                    <div key={i} className="orderbook-row orderbook-trade-row">
+                      <span className={Math.random() > 0.5 ? 'orderbook-price-bid' : 'orderbook-price-ask'}>
+                        {(91.190 + Math.random() * 0.02).toFixed(3)}
                       </span>
-                      <span className="text-white/70">{(Math.random() * 2).toFixed(5)}</span>
-                      <span className="text-white/50">12:34:56</span>
+                      <span className="orderbook-size">{(Math.random() * 2).toFixed(5)}</span>
+                      <span className="orderbook-time">12:34:56</span>
                     </div>
                   ))}
                 </div>
@@ -131,8 +155,8 @@ export function TradingInterface() {
         </div>
 
         {/* Right: Trading Panel */}
-        <div className="w-80 flex flex-col border-l border-[rgba(255,255,255,0.1)] overflow-y-auto">
-          <div className="p-2">
+        <div className="trading-interface-right">
+          <div className="trading-interface-right-inner">
             <OrderForm />
           </div>
         </div>

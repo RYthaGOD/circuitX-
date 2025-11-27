@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* Font Face */
 @font-face {
   font-family: 'PolySans Neutral';

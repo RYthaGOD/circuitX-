@@ -1,56 +1,76 @@
+import { useState } from 'react';
 import { ConnectButton } from '../Wallet/ConnectButton';
+import { FaucetModal } from '../Wallet/FaucetModal';
+import '../../App.css';
 
-export function Header() {
+interface HeaderProps {
+  currentPage?: 'trading' | 'portfolio';
+  onNavigate?: (page: 'trading' | 'portfolio') => void;
+}
+
+export function Header({ currentPage = 'trading', onNavigate }: HeaderProps) {
+  const [showFaucet, setShowFaucet] = useState(false);
+
   return (
-    <header className="h-14 border-b border-[rgba(255,255,255,0.1)] bg-[#0f1a1f] flex items-center justify-between" style={{ paddingLeft: '5px', paddingRight: '5px' }}>
+    <header className="app-header">
       {/* Left: Logo, Brand, and Navigation */}
-      <div className="flex items-center gap-6">
+      <div className="app-header-left">
         {/* Logo and Brand */}
-        <div className="flex items-center gap-2">
+        <div className="app-header-logo-container">
           <img 
             src="/assets/logo_green.png" 
             alt="Circuit Logo" 
-            className="h-6 w-auto"
-            style={{ maxWidth: '24px' }}
+            className="app-header-logo"
           />
-          <span className="text-2xl font-normal italic text-white">
+          <span className="app-header-brand">
             Circuit
           </span>
         </div>
 
         {/* Navigation - Positioned after logo */}
-        <nav className="flex items-center gap-6">
-          <a 
-            href="#" 
-            className="text-sm font-light text-[#ffffff] hover:text-[#50d2c1]/80 transition-colors"
+        <nav className="app-header-nav">
+          <button
+            onClick={() => onNavigate?.('trading')}
+            className={`app-header-nav-link ${currentPage === 'trading' ? 'active' : ''}`}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Trade
-          </a>
-          <a 
-            href="#" 
-            className="text-sm font-light text-[#ffffff] hover:text-white/80 transition-colors"
+          </button>
+          <button
+            onClick={() => onNavigate?.('portfolio')}
+            className={`app-header-nav-link ${currentPage === 'portfolio' ? 'active' : ''}`}
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
           >
             Portfolio
-          </a>
+          </button>
           <a 
-            href="#" 
-            className="text-sm font-light text-[#ffffff] hover:text-white/80 transition-colors"
+            href="https://github.com/YieldStark/perpl/blob/main/docs/ARCHITECTURE.md"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="app-header-nav-link"
           >
             Docs
           </a>
           <a 
             href="#" 
-            className="text-sm font-light text-[#ffffff] hover:text-white/80 transition-colors"
+            className="app-header-nav-link"
           >
             Support
           </a>
+          <button
+            onClick={() => setShowFaucet(true)}
+            className="app-header-nav-button"
+          >
+            Faucet
+          </button>
         </nav>
       </div>
 
       {/* Right: Connect Button */}
-      <div className="flex items-center">
+      <div className="app-header-right">
         <ConnectButton />
       </div>
+      <FaucetModal isOpen={showFaucet} onClose={() => setShowFaucet(false)} />
     </header>
   );
 }

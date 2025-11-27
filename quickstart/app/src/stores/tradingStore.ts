@@ -40,6 +40,7 @@ interface TradingState {
   ztarknetAccount: Account | null; // Ztarknet wallet for trading
   isSepoliaConnected: boolean;
   isZtarknetReady: boolean;
+  availableBalance: string; // yUSD balance (wei string)
   
   // Trading State
   selectedMarket: string;
@@ -58,6 +59,7 @@ interface TradingState {
   setSepoliaAccount: (account: Account | null) => void;
   setZtarknetAccount: (account: Account | null) => void;
   setSelectedMarket: (marketId: string) => void;
+  setAvailableBalance: (balance: string) => void;
   addPosition: (position: Position) => void;
   updatePosition: (commitment: string, updates: Partial<Position>) => void;
   removePosition: (commitment: string) => void;
@@ -79,6 +81,7 @@ export const useTradingStore = create<TradingState>((set) => ({
   ztarknetAccount: null,
   isSepoliaConnected: false,
   isZtarknetReady: false,
+  availableBalance: '0',
   selectedMarket: '0x4244432f555344', // BTC/USD default
   positions: [],
   orders: [],
@@ -92,6 +95,7 @@ export const useTradingStore = create<TradingState>((set) => ({
   // Actions
   setSepoliaAccount: (account) => set({ sepoliaAccount: account, isSepoliaConnected: !!account }),
   setZtarknetAccount: (account) => set({ ztarknetAccount: account, isZtarknetReady: !!account }),
+  setAvailableBalance: (balance) => set({ availableBalance: balance }),
   
   setSelectedMarket: (marketId) => set({ selectedMarket: marketId }),
   

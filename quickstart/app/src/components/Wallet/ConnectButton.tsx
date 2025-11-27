@@ -11,6 +11,7 @@ import {
   createZtarknetAccount,
   isWalletDeployed,
 } from '../../services/walletService';
+import { fetchYusdBalance } from '../../lib/balanceUtils';
 
 export function ConnectButton() {
   const {
@@ -20,6 +21,7 @@ export function ConnectButton() {
     setZtarknetAccount,
     isSepoliaConnected,
     isZtarknetReady,
+    setAvailableBalance,
   } = useTradingStore();
   const [isConnecting, setIsConnecting] = useState(false);
   const [showZtarknetModal, setShowZtarknetModal] = useState(false);
@@ -38,6 +40,9 @@ export function ConnectButton() {
         if (deployed) {
           const account = createZtarknetAccount({ ...saved, deployed: true });
           setZtarknetAccount(account);
+          // Fetch balance when wallet is loaded
+          const balance = await fetchYusdBalance(account);
+          setAvailableBalance(balance);
         }
       } catch (error) {
         console.error('Error loading Ztarknet wallet:', error);
@@ -45,7 +50,20 @@ export function ConnectButton() {
     };
 
     syncWallet();
-  }, [sepoliaAccount, setZtarknetAccount]);
+  }, [sepoliaAccount, setZtarknetAccount, setAvailableBalance]);
+
+  // Fetch balance when ztarknetAccount changes
+  useEffect(() => {
+    const updateBalance = async () => {
+      if (ztarknetAccount && isZtarknetReady) {
+        const balance = await fetchYusdBalance(ztarknetAccount);
+        setAvailableBalance(balance);
+      } else {
+        setAvailableBalance('0');
+      }
+    };
+    updateBalance();
+  }, [ztarknetAccount, isZtarknetReady, setAvailableBalance]);
 
   const handleConnect = async () => {
     setIsConnecting(true);
@@ -71,12 +89,18 @@ export function ConnectButton() {
         if (existing && existing.deployed) {
           const account = createZtarknetAccount(existing);
           setZtarknetAccount(account);
+          // Fetch balance when wallet is connected
+          const balance = await fetchYusdBalance(account);
+          setAvailableBalance(balance);
         } else if (existing) {
           try {
             const deployed = await isWalletDeployed(existing.address);
             if (deployed) {
               const account = createZtarknetAccount({ ...existing, deployed: true });
               setZtarknetAccount(account);
+              // Fetch balance when wallet is connected
+              const balance = await fetchYusdBalance(account);
+              setAvailableBalance(balance);
             } else {
               setProvisionOwner(ownerAddress);
               setShowProvisionModal(true);
@@ -102,13 +126,17 @@ export function ConnectButton() {
     await disconnect();
     setSepoliaAccount(null);
     setZtarknetAccount(null);
+    setAvailableBalance('0');
     toast.info('Wallets disconnected');
   };
 
-  const handleZtarknetWalletReady = (account: Account) => {
+  const handleZtarknetWalletReady = async (account: Account) => {
     setZtarknetAccount(account);
     setShowProvisionModal(false);
     setShowZtarknetModal(false);
+    // Fetch balance when wallet is ready
+    const balance = await fetchYusdBalance(account);
+    setAvailableBalance(balance);
     toast.success('Ztarknet wallet ready for trading!');
   };
 
