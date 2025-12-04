@@ -144,3 +144,12 @@ vault.can_absorb_loss(market_id, loss_amount)  // Before absorbing loss
 
 
 
+
+
+
+
+
+
+
+
+

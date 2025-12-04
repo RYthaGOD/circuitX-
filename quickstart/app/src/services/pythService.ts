@@ -1,8 +1,18 @@
 // Pyth Network API Configuration
 // Using Pyth's REST API directly (same approach as uniperp)
-// BTC/USD price feed ID on Pyth mainnet
 const PYTH_API_BASE = 'https://hermes.pyth.network';
-const PYTH_PRICE_FEED_ID_BTC_USD = '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43';
+
+// Pyth price feed IDs for all supported markets
+export const PYTH_PRICE_FEED_IDS: Record<string, string> = {
+  'BTC/USD': '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
+  'ETH/USD': '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',
+  'STRK/USD': '0x6a182399ff70ccf3e06024898942028204125a819e519a335ffa4579e66cd870',
+  'SOL/USD': '0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d',
+  'BNB/USD': '0x2f95862b045670cd22bee3114c39763a4a08beeb663b145d283c31d7d1101c4f',
+};
+
+// Legacy constant for backward compatibility
+const PYTH_PRICE_FEED_ID_BTC_USD = PYTH_PRICE_FEED_IDS['BTC/USD'];
 
 export interface PythPriceData {
   price: number;
@@ -23,14 +33,20 @@ export interface PythHistoricalData {
 }
 
 /**
- * Fetch current BTC/USD price from Pyth Network
+ * Fetch current price from Pyth Network for a given market
  * Uses the REST API endpoint (same approach as uniperp)
+ * @param marketId - Market identifier (e.g., 'BTC/USD'). Defaults to 'BTC/USD' for backward compatibility
  */
-export async function fetchPythPrice(): Promise<PythPriceData> {
+export async function fetchPythPrice(marketId: string = 'BTC/USD'): Promise<PythPriceData> {
   try {
+    const priceFeedId = PYTH_PRICE_FEED_IDS[marketId];
+    if (!priceFeedId) {
+      throw new Error(`Unsupported market: ${marketId}. Supported markets: ${Object.keys(PYTH_PRICE_FEED_IDS).join(', ')}`);
+    }
+
     // Use the REST API endpoint directly (like uniperp does in use-positions.ts)
     const response = await fetch(
-      `${PYTH_API_BASE}/api/latest_price_feeds?ids[]=${PYTH_PRICE_FEED_ID_BTC_USD}`
+      `${PYTH_API_BASE}/api/latest_price_feeds?ids[]=${priceFeedId}`
     );
 
     if (!response.ok) {
@@ -81,10 +97,14 @@ export async function fetchPythPrice(): Promise<PythPriceData> {
  * Fetch historical price data from Pyth Network
  * Note: Pyth's free API may have limited historical data
  * For production, consider using their paid tier or aggregating from multiple sources
+ * @param interval - Time interval for candles (e.g., '1h', '5min')
+ * @param numEntries - Number of historical entries to generate
+ * @param marketId - Market identifier (e.g., 'BTC/USD'). Defaults to 'BTC/USD'
  */
 export async function fetchPythHistoricalData(
   interval: string = '1h',
-  numEntries: number = 100
+  numEntries: number = 100,
+  marketId: string = 'BTC/USD'
 ): Promise<PythHistoricalData> {
   try {
     // Pyth doesn't have a direct historical OHLC endpoint in their free tier
@@ -92,7 +112,7 @@ export async function fetchPythHistoricalData(
     // For production, you might want to use a different data source or Pyth's paid API
     
     // Fetch current price using REST API (same as fetchPythPrice)
-    const currentPriceData = await fetchPythPrice();
+    const currentPriceData = await fetchPythPrice(marketId);
     const currentPrice = currentPriceData.price;
     
     // Generate synthetic OHLC data from current price

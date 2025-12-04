@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { ConnectButton } from '../Wallet/ConnectButton';
 import { FaucetModal } from '../Wallet/FaucetModal';
+import { NetworkNotification } from './NetworkNotification';
+import { SettingsModal } from './SettingsModal';
 import '../../App.css';
 
 interface HeaderProps {
@@ -23,7 +25,7 @@ export function Header({ currentPage = 'trading', onNavigate }: HeaderProps) {
             className="app-header-logo"
           />
           <span className="app-header-brand">
-            Circuit
+            CircuitX
           </span>
         </div>
 
@@ -66,9 +68,11 @@ export function Header({ currentPage = 'trading', onNavigate }: HeaderProps) {
         </nav>
       </div>
 
-      {/* Right: Connect Button */}
+      {/* Right: Connect Button and Icons */}
       <div className="app-header-right">
         <ConnectButton />
+        <NetworkNotification />
+        <SettingsModal />
       </div>
       <FaucetModal isOpen={showFaucet} onClose={() => setShowFaucet(false)} />
     </header>

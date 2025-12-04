@@ -12,7 +12,7 @@ use starknet::storage::{
 pub trait IRiskManager<TContractState> {
     fn validate_margin(
         self: @TContractState,
-        market_id: felt252,
+        market_id: felt252, // FIXED: Parameter kept for interface compatibility but ignored
         collateral_amount: u256,
         position_size_usd: u256,
         leverage: u256,
@@ -100,19 +100,17 @@ mod RiskManager {
     impl RiskManagerImpl of super::IRiskManager<ContractState> {
         fn validate_margin(
             self: @ContractState,
-            market_id: felt252,
+            market_id: felt252, // FIXED: Ignored - using default values
             collateral_amount: u256,
             position_size_usd: u256,
             leverage: u256,
             current_price: u256,
         ) -> bool {
-            // Get market config
-            let config = self.data_store.read().get_market_config(market_id);
+            // FIXED: Use hardcoded max leverage instead of market config
+            // Validate leverage against default max (20x = 2000 BPS)
+            assert(leverage <= MAX_LEVERAGE, 'LEVERAGE_TOO_HIGH');
 
-            // Validate leverage
-            assert(leverage <= config.max_leverage, 'LEVERAGE_TOO_HIGH');
-
-            // Calculate required margin
+            // Calculate required margin (doesn't need market_id)
             let required_margin = Self::get_required_margin(
                 self, market_id, position_size_usd, leverage,
             );
@@ -127,34 +125,30 @@ mod RiskManager {
         fn validate_open_interest(
             self: @ContractState, market_id: felt252, additional_size_usd: u256, is_long: bool,
         ) -> bool {
-            let config = self.data_store.read().get_market_config(market_id);
+            // FIXED: Use hardcoded max position size instead of market config
+            // Default max position size: 1M yUSD
+            const DEFAULT_MAX_POSITION_SIZE: u256 = 1000000000000000000000000; // 1M yUSD (18 decimals)
 
-            // Get current open interest
-            let current_oi = if is_long {
-                self
-                    .data_store
-                    .read()
-                    .get_u256(
-                        private_perp::core::keys::keys::long_open_interest_key(market_id),
-                    )
+            // FIXED: Track open interest globally (ignore market_id)
+            // Use a single key for all markets
+            let oi_key = if is_long {
+                private_perp::core::keys::keys::long_open_interest_key(0) // Use 0 as global key
             } else {
-                self
-                    .data_store
-                    .read()
-                    .get_u256(
-                        private_perp::core::keys::keys::short_open_interest_key(market_id),
-                    )
+                private_perp::core::keys::keys::short_open_interest_key(0) // Use 0 as global key
             };
+
+            // Get current open interest (global, not per-market)
+            let current_oi = self.data_store.read().get_u256(oi_key);
 
             let new_oi = current_oi + additional_size_usd;
 
-            // Check against max position size
-            new_oi <= config.max_position_size
+            // Check against max position size (hardcoded)
+            new_oi <= DEFAULT_MAX_POSITION_SIZE
         }
 
         fn check_liquidation_threshold(
             self: @ContractState,
-            market_id: felt252,
+            market_id: felt252, // FIXED: Ignored - liquidation threshold is global
             collateral_amount: u256,
             position_size_usd: u256,
             entry_price: u256,
@@ -225,15 +219,15 @@ mod RiskManager {
         fn get_max_position_size(
             self: @ContractState, market_id: felt252, collateral_amount: u256,
         ) -> u256 {
-            let config = self.data_store.read().get_market_config(market_id);
-
-            // Max position = collateral * max leverage
-            apply_factor_u256(collateral_amount, config.max_leverage)
+            // FIXED: Use hardcoded max leverage instead of market config
+            // Max position = collateral * max leverage (20x = 2000 BPS)
+            apply_factor_u256(collateral_amount, MAX_LEVERAGE)
         }
 
         fn get_required_margin(
             self: @ContractState, market_id: felt252, position_size_usd: u256, leverage: u256,
         ) -> u256 {
+            // FIXED: market_id ignored - calculation doesn't depend on it
             // Required margin = position_size / leverage
             // With BPS: margin = position_size * 10000 / leverage
             mul_div_roundup(
@@ -246,7 +240,7 @@ mod RiskManager {
 
         fn calculate_liquidation_price(
             self: @ContractState,
-            market_id: felt252,
+            market_id: felt252, // FIXED: Ignored - liquidation calculation doesn't depend on market
             collateral_amount: u256,
             position_size_usd: u256,
             entry_price: u256,

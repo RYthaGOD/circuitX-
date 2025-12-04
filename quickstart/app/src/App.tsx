@@ -20,6 +20,7 @@ import { Portfolio } from './components/Portfolio/Portfolio';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useTradingStore } from './stores/tradingStore';
 import { MARKET_INFO } from './config/contracts';
+import { LandingPage } from './components/Landing/LandingPage';
 
 function App() {
   const [proofState, setProofState] = useState<ProofStateData>({
@@ -189,7 +190,12 @@ function App() {
     return states.indexOf(state);
   };
 
-  const [currentPage, setCurrentPage] = useState<'proof' | 'faucet' | 'trading' | 'portfolio'>('trading');
+  const [currentPage, setCurrentPage] = useState<'landing' | 'proof' | 'faucet' | 'trading' | 'portfolio'>(() => {
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/trade')) {
+      return 'trading';
+    }
+    return 'landing';
+  });
   
   // Update page title with current market price
   const selectedMarket = useTradingStore((state) => state.selectedMarket);
@@ -212,129 +218,51 @@ function App() {
         document.title = `91,168 | BTC | Circuit`;
       }
     } else if (currentPage === 'portfolio') {
-      document.title = `Portfolio | Circuit`;
+      document.title = `Portfolio | CircuitX`;
     } else {
-      document.title = `Circuit - Private Perpetual DEX`;
+      document.title = `CircuitX - Private Perpetual DEX`;
     }
   }, [currentPage, selectedMarket, markets]);
 
+  const navigateToTrading = () => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/trade');
+    }
+    setCurrentPage('trading');
+  };
+
+  const handleNavigate = (page: 'trading' | 'portfolio') => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/trade');
+    }
+    setCurrentPage(page);
+  };
+
+  useEffect(() => {
+    const handlePopState = () => {
+      if (window.location.pathname.startsWith('/trade')) {
+        setCurrentPage('trading');
+      } else {
+        setCurrentPage('landing');
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
   return (
     <>
-      {currentPage === 'trading' ? (
+      {currentPage === 'landing' ? (
+        <LandingPage onStartTrading={navigateToTrading} />
+      ) : currentPage === 'trading' ? (
         <ErrorBoundary>
-          <TradingInterface onNavigate={(page) => setCurrentPage(page)} />
-        </ErrorBoundary>
-      ) : currentPage === 'portfolio' ? (
-        <ErrorBoundary>
-          <Portfolio onNavigate={(page) => setCurrentPage(page)} />
+          <TradingInterface onNavigate={handleNavigate} />
         </ErrorBoundary>
       ) : (
-    <div className="container">
-          {/* Tailwind CSS Test Banner */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white p-4 mb-4 rounded-lg shadow-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold">🎨 Tailwind CSS Test</h2>
-                <p className="text-sm text-blue-100">If you see this styled banner, Tailwind is working!</p>
-              </div>
-              <div className="flex gap-2">
-                <div className="bg-white/20 rounded px-3 py-1 text-sm font-semibold">Card Test</div>
-                <div className="bg-white/20 rounded px-3 py-1 text-sm font-semibold">Grid Test</div>
-                <button className="bg-white text-blue-600 hover:bg-blue-50 font-bold py-1 px-4 rounded transition-colors">
-                  Button Test
-                </button>
-              </div>
-            </div>
-          </div>
-
-      <nav className="app-nav">
-            <button 
-              className={(currentPage as string) === 'trading' ? 'active' : ''}
-              onClick={() => setCurrentPage('trading')}
-            >
-              Trading
-            </button>
-            <button 
-              className={currentPage === 'portfolio' ? 'active' : ''}
-              onClick={() => setCurrentPage('portfolio')}
-            >
-              Portfolio
-            </button>
-        <button 
-          className={currentPage === 'faucet' ? 'active' : ''}
-          onClick={() => setCurrentPage('faucet')}
-        >
-          yUSD Faucet
-        </button>
-        <button 
-          className={currentPage === 'proof' ? 'active' : ''}
-          onClick={() => setCurrentPage('proof')}
-        >
-          Proof Generation
-        </button>
-      </nav>
-
-      {currentPage === 'faucet' ? (
-        <Faucet />
-      ) : (
-        <>
-          <h1>Noir Proof Generation & Starknet Verification</h1>
-          
-          <div className="state-machine">
-        <div className="input-section">
-          <div className="input-group">
-            <label htmlFor="input-x">X:</label>
-            <input 
-              id="input-x"
-              type="text" 
-              value={inputX} 
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                setInputX(isNaN(value) ? 0 : value);
-              }} 
-              disabled={proofState.state !== ProofState.Initial}
-            />
-          </div>
-          <div className="input-group">
-            <label htmlFor="input-y">Y:</label>
-            <input 
-              id="input-y"
-              type="text" 
-              value={inputY} 
-              onChange={(e) => {
-                const value = parseInt(e.target.value);
-                setInputY(isNaN(value) ? 0 : value);
-              }} 
-              disabled={proofState.state !== ProofState.Initial}
-            />
-          </div>
-        </div>
-        
-        {renderStateIndicator(ProofState.GeneratingWitness, proofState.state)}
-        {renderStateIndicator(ProofState.GeneratingProof, proofState.state)}
-        {renderStateIndicator(ProofState.PreparingCalldata, proofState.state)}
-        {renderStateIndicator(ProofState.ConnectingWallet, proofState.state)}
-        {renderStateIndicator(ProofState.SendingTransaction, proofState.state)}
-      </div>
-      
-      {proofState.error && (
-        <div className="error-message">
-          Error at stage '{proofState.state}': {proofState.error}
-        </div>
-      )}
-      
-      <div className="controls">
-        {proofState.state === ProofState.Initial && !proofState.error && (
-          <button className="primary-button" onClick={startProcess}>Start</button>
-        )}
-        
-        {(proofState.error || proofState.state === ProofState.ProofVerified) && (
-          <button className="reset-button" onClick={resetState}>Reset</button>
-        )}
-      </div>
-        </>
-      )}
-    </div>
+        <ErrorBoundary>
+          <Portfolio onNavigate={handleNavigate} />
+        </ErrorBoundary>
       )}
     </>
   )

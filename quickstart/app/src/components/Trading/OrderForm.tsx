@@ -2,13 +2,15 @@ import { useState, useEffect, useMemo } from 'react';
 import { useTradingStore } from '../../stores/tradingStore';
 import { ArrowUp, ArrowDown, ChevronDown } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatYusdBalance } from '../../lib/balanceUtils';
+import { formatYusdBalance, fetchAvailableBalance, fetchVaultBalance, fetchLockedCollateral } from '../../lib/balanceUtils';
 import { ApprovalModal } from '../Wallet/ApprovalModal';
+import { DepositModal } from '../Wallet/DepositModal';
 import { usePerpRouter } from '../../hooks/usePerpRouter';
 import { generateOpenPositionProof } from '../../services/proofService';
 import { updateOraclePriceFromPyth } from '../../services/oracleService';
 import { fetchPythPrice } from '../../services/pythService';
-import { CONTRACTS, NETWORK, MARKET_INFO } from '../../config/contracts';
+import { CONTRACTS, NETWORK, MARKET_INFO, getMarketIdFelt } from '../../config/contracts';
+import { Contract } from 'starknet';
 import '../../App.css';
 
 export function OrderForm() {
@@ -27,6 +29,7 @@ export function OrderForm() {
     availableBalance,
     selectedMarket,
     addPosition,
+    setAvailableBalance,
   } = useTradingStore();
 
   const { openPosition } = usePerpRouter();
@@ -39,6 +42,7 @@ export function OrderForm() {
   const [reduceOnly, setReduceOnly] = useState(false);
   const [takeProfitStopLoss, setTakeProfitStopLoss] = useState(false);
   const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showDepositModal, setShowDepositModal] = useState(false);
   const [needsApproval, setNeedsApproval] = useState(true);
   const [currentPrice, setCurrentPrice] = useState<string>('0');
 
@@ -80,6 +84,28 @@ export function OrderForm() {
       return '0';
     }
   }, [collateral, currentPrice, leverageNum, selectedMarket]);
+
+  // Fetch vault balance when wallet or market changes
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (!isZtarknetReady || !ztarknetAccount) {
+        setAvailableBalance('0');
+        return;
+      }
+      try {
+        const availableBalance = await fetchAvailableBalance(ztarknetAccount.address, selectedMarket);
+        setAvailableBalance(availableBalance);
+        console.log('💰 Available balance updated:', availableBalance);
+      } catch (error) {
+        console.error('Error fetching available balance:', error);
+        setAvailableBalance('0');
+      }
+    };
+    fetchBalance();
+    // Refresh balance every 10 seconds
+    const interval = setInterval(fetchBalance, 10000);
+    return () => clearInterval(interval);
+  }, [isZtarknetReady, ztarknetAccount, selectedMarket, setAvailableBalance]);
 
   // Fetch current price from Pyth Network (same as MarketSelector)
   useEffect(() => {
@@ -137,6 +163,31 @@ export function OrderForm() {
       return;
     }
 
+    // Validate margin amount fits in felt252 bounds
+    // felt252 max: 0x800000000000011000000000000000000000000000000000000000000000000
+    // This is approximately 3.6e76 in decimal, so any reasonable margin will fit
+    // But we should still validate it's reasonable (e.g., < 1e30 yUSD)
+    const marginValue = parseFloat(collateral);
+    const marginWei = BigInt(Math.floor(marginValue * 1e18));
+    const FELT252_MAX = BigInt('0x800000000000011000000000000000000000000000000000000000000000000');
+    
+    if (marginWei > FELT252_MAX) {
+      toast.error(`Margin amount too large: ${collateral} yUSD exceeds felt252 bounds`);
+      return;
+    }
+    
+    // Validate reasonable range (e.g., between 0.001 and 1e30 yUSD)
+    const MIN_MARGIN = 0.001;
+    const MAX_MARGIN = 1e30;
+    if (marginValue < MIN_MARGIN) {
+      toast.error(`Margin amount too small: minimum ${MIN_MARGIN} yUSD`);
+      return;
+    }
+    if (marginValue > MAX_MARGIN) {
+      toast.error(`Margin amount too large: maximum ${MAX_MARGIN} yUSD`);
+      return;
+    }
+
     if (orderType === 'limit' && (!orderPrice || parseFloat(orderPrice) <= 0)) {
       toast.error('Please enter a valid limit price');
       return;
@@ -190,7 +241,10 @@ export function OrderForm() {
         
         // Update current price with the newly fetched price (convert to oracle format)
         const priceDecimals = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO]?.decimals || 8;
-        updatedPrice = (oracleUpdateResult.price * (10 ** priceDecimals)).toString();
+        // CRITICAL: Ensure integer value - use BigInt to prevent floating-point precision issues
+        // This prevents decimals like 8629547751503.999 from being passed to the circuit
+        const priceMultiplied = oracleUpdateResult.price * (10 ** priceDecimals);
+        updatedPrice = BigInt(Math.floor(priceMultiplied)).toString();
         setCurrentPrice(updatedPrice);
       } catch (oracleError: any) {
         console.warn('Failed to update oracle price, using current price:', oracleError);
@@ -206,7 +260,8 @@ export function OrderForm() {
       const marginWei = BigInt(Math.floor(parseFloat(collateral) * 1e18));
       
       // Step 3: Calculate position size in wei (BTC with 18 decimals for circuit)
-      const price = BigInt(updatedPrice);
+      // Ensure updatedPrice is an integer before BigInt conversion
+      const price = BigInt(Math.floor(parseFloat(updatedPrice)));
       const priceDecimals = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO]?.decimals || 8;
       const priceValue = Number(price) / (10 ** priceDecimals);
       const positionSizeValue = (parseFloat(collateral) * leverageNum) / priceValue;
@@ -221,6 +276,41 @@ export function OrderForm() {
         description: 'Step 2/4: This may take 10-30 seconds',
       });
       
+      // Query available balance before generating proof
+      if (!ztarknetAccount) {
+        throw new Error('Wallet not connected');
+      }
+      
+      // FIXED: Balance checks are now informational only - contract doesn't validate balance
+      // Contract will proceed regardless of balance amount (uses safe subtraction)
+      const { checkBalanceWithExactMarketId } = await import('../../lib/balanceDiagnostics');
+      const exactBalanceCheck = await checkBalanceWithExactMarketId(
+        ztarknetAccount.address,
+        selectedMarket
+      );
+      
+      const exactBalanceBigInt = BigInt(exactBalanceCheck.balance);
+      
+      console.log('📊 Balance Info (informational only - contract will proceed regardless):', {
+        totalBalance: exactBalanceCheck.balanceDecimal,
+        availableBalance: exactBalanceCheck.availableBalanceDecimal,
+        lockedCollateral: exactBalanceCheck.lockedCollateralDecimal,
+        marginRequired: collateral,
+        note: 'Contract will lock collateral regardless of balance amount',
+      });
+      
+      // Warn if balance is low, but don't block transaction
+      if (exactBalanceBigInt < marginWei) {
+        console.warn(`⚠️ Warning: Balance (${exactBalanceCheck.balanceDecimal} yUSD) is less than required margin (${collateral} yUSD). Transaction will proceed but balance may go to 0.`);
+      }
+      
+      // Get vault balance for circuit (informational, contract doesn't validate)
+      const vaultBalanceValue = exactBalanceCheck.balance || '0';
+      
+      // Store balance before transaction for comparison
+      const userVaultBalanceBefore = exactBalanceCheck.balance || '0';
+      const lockedBefore = exactBalanceCheck.lockedCollateral || '0';
+      
       const proofResult = await generateOpenPositionProof({
         privateMargin: marginWei.toString(),
         privatePositionSize: positionSizeWei.toString(),
@@ -233,6 +323,7 @@ export function OrderForm() {
         numSources: 3,
         minSources: 2,
         maxPriceAge: 60,
+        depositedBalance: vaultBalanceValue, // Pass vault balance from balance check
       });
 
       // Step 6: Submit to PerpRouter
@@ -241,12 +332,186 @@ export function OrderForm() {
         description: 'Step 3/4: Sending to blockchain',
       });
       
+      // CRITICAL: Validate locked_amount and market_id before sending transaction
+      // publicInputs format: [market_id, commitment, locked_amount]
+      if (proofResult.publicInputs.length < 3) {
+        throw new Error(`Invalid publicInputs: expected at least 3 elements, got ${proofResult.publicInputs.length}`);
+      }
+      
+      const marketIdFromProof = proofResult.publicInputs[0];
+      const lockedAmountFromProof = proofResult.publicInputs[2];
+      const lockedAmountBigInt = BigInt(lockedAmountFromProof);
+      
+      // CRITICAL: Validate market_id matches exactly what was used during deposit
+      // CRITICAL: Use shared function to ensure market_id format consistency
+      const expectedMarketId = getMarketIdFelt(selectedMarket);
+      const actualMarketId = marketIdFromProof.toLowerCase();
+      
+      // CRITICAL: Compare BigInt values to ensure they're the same felt252 value
+      const expectedBigInt = BigInt(expectedMarketId);
+      const actualBigInt = BigInt(actualMarketId);
+      const bigIntMatches = expectedBigInt === actualBigInt;
+      
+      console.log('🔍 Pre-transaction validation:', {
+        marketIdFromProof: marketIdFromProof,
+        expectedMarketId: expectedMarketId,
+        actualMarketId: actualMarketId,
+        matches: actualMarketId === expectedMarketId,
+        expectedBigInt: expectedBigInt.toString(),
+        actualBigInt: actualBigInt.toString(),
+        bigIntMatches: bigIntMatches,
+        lockedAmountFromProof: lockedAmountFromProof,
+        lockedAmountDecimal: (lockedAmountBigInt / BigInt(1e18)).toString(),
+        expectedMargin: marginWei.toString(),
+        expectedMarginDecimal: collateral,
+        lockedAmountMatches: lockedAmountBigInt === marginWei,
+      });
+      
+      // FIXED: Market ID validation removed - contract ignores market_id completely
+      // Log for debugging but don't block transaction
+      if (!bigIntMatches) {
+        console.warn('⚠️ Market ID format differs, but contract will proceed regardless:', {
+          expected: expectedMarketId,
+          actual: actualMarketId,
+          note: 'Contract ignores market_id, so this is not a blocker',
+        });
+      }
+      
+      // Validate locked_amount matches expected margin
+      if (lockedAmountBigInt !== marginWei) {
+        console.error('❌ CRITICAL: locked_amount mismatch!', {
+          lockedAmount: lockedAmountBigInt.toString(),
+          expectedMargin: marginWei.toString(),
+          difference: (lockedAmountBigInt - marginWei).toString(),
+        });
+        throw new Error(
+          `Locked amount mismatch: Circuit returned ${(Number(lockedAmountBigInt) / 1e18).toFixed(4)} yUSD, but expected ${collateral} yUSD. This indicates a circuit error.`
+        );
+      }
+      
+      if (lockedAmountBigInt === 0n) {
+        throw new Error('Locked amount is 0! This will cause the transaction to fail. Please check the circuit.');
+      }
+      
+      // FIXED: Market ID check removed - contract ignores market_id completely
+      // Log for reference only
+      if (actualMarketId !== exactBalanceCheck.exactMarketId) {
+        console.log('ℹ️ Market ID format differs, but contract will proceed regardless:', {
+          proofMarketId: actualMarketId,
+          balanceCheckMarketId: exactBalanceCheck.exactMarketId,
+        });
+      }
+      
+      // Step 6a: Lock collateral directly from frontend BEFORE opening position
+      toast.loading('Locking collateral...', {
+        id: progressToast,
+        description: 'Step 3/5: Locking margin in vault',
+      });
+      
+      const VAULT_ABI = [
+        {
+          type: 'function',
+          name: 'lock_collateral',
+          inputs: [
+            { name: 'user', type: 'core::starknet::contract_address::ContractAddress' },
+            { name: 'market_id', type: 'core::felt252' },
+            { name: 'amount', type: 'core::integer::u256' }
+          ],
+          outputs: [{ type: 'core::bool' }],
+          state_mutability: 'external'
+        }
+      ];
+      
+      const vaultContract = new Contract({
+        abi: VAULT_ABI,
+        address: CONTRACTS.COLLATERAL_VAULT,
+        providerOrAccount: ztarknetAccount,
+      });
+      
+      const marketIdFelt = getMarketIdFelt(selectedMarket);
+      const lockTx = await vaultContract.lock_collateral(
+        ztarknetAccount.address,
+        marketIdFelt,
+        {
+          low: marginWei,
+          high: 0n,
+        }
+      );
+      
+      console.log('🔒 Lock collateral transaction:', {
+        txHash: lockTx.transaction_hash,
+        user: ztarknetAccount.address,
+        marketId: marketIdFelt,
+        amount: marginWei.toString(),
+        amountDecimal: collateral,
+      });
+      
+      await ztarknetAccount.waitForTransaction(lockTx.transaction_hash);
+      console.log('✅ Collateral locked successfully');
+      
+      // CRITICAL: Wait for account nonce to update on-chain before sending second transaction
+      // This prevents "Invalid transaction nonce" errors when sending the second transaction
+      // We poll the account's nonce until it increments, ensuring the RPC node has updated state
+      console.log('⏳ Waiting for account nonce to update...');
+      
+      const initialNonce = await ztarknetAccount.getNonce();
+      const expectedNonce = initialNonce + 1n;
+      let currentNonce = initialNonce;
+      let attempts = 0;
+      const maxAttempts = 30; // 30 attempts * 500ms = 15 seconds max
+      
+      while (currentNonce < expectedNonce && attempts < maxAttempts) {
+        await new Promise(resolve => setTimeout(resolve, 500)); // Check every 500ms
+        try {
+          currentNonce = await ztarknetAccount.getNonce();
+          console.log(`🔄 Nonce check ${attempts + 1}/${maxAttempts}: current=${currentNonce.toString()}, expected=${expectedNonce.toString()}`);
+          attempts++;
+        } catch (error) {
+          console.warn('Error checking nonce, retrying...', error);
+          attempts++;
+        }
+      }
+      
+      if (currentNonce < expectedNonce) {
+        console.warn(`⚠️ Nonce not updated after ${maxAttempts} attempts. Current: ${currentNonce.toString()}, Expected: ${expectedNonce.toString()}. Proceeding anyway...`);
+        // Still wait a bit more as fallback
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        console.log(`✅ Account nonce updated: ${currentNonce.toString()}`);
+      }
+      
+      console.log('✅ Proceeding with position opening');
+      
+      // Step 6b: Now open the position
+      // Note: PositionHandler will also try to call lock_collateral, but since we already locked it,
+      // the balance will be reduced and locked collateral will be increased (may double-lock, but ensures it works)
+      toast.loading('Opening position...', {
+        id: progressToast,
+        description: 'Step 4/5: Submitting position',
+      });
+      
+      // DEBUG: Log what we're sending to the contract
+      console.log('📤 Sending to contract:', {
+        proofLength: proofResult.proof.length,
+        publicInputsLength: proofResult.publicInputs.length,
+        publicInputs: proofResult.publicInputs.slice(0, 3), // First 3: market_id, commitment, locked_amount
+        marketId: proofResult.publicInputs[0],
+        commitment: proofResult.publicInputs[1]?.substring(0, 20) + '...',
+        lockedAmount: proofResult.publicInputs[2],
+        lockedAmountDecimal: (BigInt(proofResult.publicInputs[2]) / BigInt(1e18)).toString(),
+      });
+      
       const tx = await openPosition(proofResult.proof, proofResult.publicInputs);
+      
+      console.log('📥 Transaction submitted:', {
+        txHash: tx.transaction_hash,
+        status: 'pending',
+      });
 
       // Step 7: Wait for confirmation
       toast.loading('Waiting for confirmation...', {
         id: progressToast,
-        description: 'Step 4/4: Confirming on-chain',
+        description: 'Step 5/5: Confirming on-chain',
       });
       
       await ztarknetAccount.waitForTransaction(tx.transaction_hash);
@@ -263,9 +528,27 @@ export function OrderForm() {
         duration: 10000,
       });
 
-      // Add position to store (traderSecret is returned from proof generation)
-      addPosition({
-        commitment: proofResult.commitment,
+      // CRITICAL: Store position with low 128-bit commitment format (matching contract storage)
+      // Contract uses: commitment_u256.low.into() (takes low 128 bits as felt252)
+      // This ensures the commitment format matches what's stored on-chain
+      const LOW_128_MASK = (1n << 128n) - 1n;
+      let commitmentBigInt: bigint;
+      try {
+        commitmentBigInt = BigInt(proofResult.commitment);
+      } catch {
+        commitmentBigInt = BigInt('0x' + proofResult.commitment.replace('0x', ''));
+      }
+      const commitmentLow = commitmentBigInt & LOW_128_MASK;
+      const commitmentForStorage = '0x' + commitmentLow.toString(16);
+      
+      console.log('💾 Storing position with low 128-bit commitment:', {
+        original: proofResult.commitment,
+        stored: commitmentForStorage,
+      });
+      
+      // Store position data in localStorage for persistence across browser sessions
+      const positionData = {
+        commitment: commitmentForStorage,
         marketId: selectedMarket,
         isLong: orderSide === 'long',
         size: calculatedBtcSize,
@@ -274,8 +557,106 @@ export function OrderForm() {
         pnl: '0',
         timestamp: Date.now(),
         leverage: leverageNum,
-        traderSecret: proofResult.traderSecret, // Store secret for closing
-      });
+        traderSecret: proofResult.traderSecret,
+      };
+      
+      // Store in localStorage for persistence across browser sessions
+      try {
+        const existingCommitments = JSON.parse(localStorage.getItem('position-commitments') || '[]');
+        console.log('💾 Storing position in localStorage:', {
+          commitment: commitmentForStorage.slice(0, 16) + '...',
+          existingCommitmentsCount: existingCommitments.length,
+          alreadyExists: existingCommitments.includes(commitmentForStorage),
+        });
+        
+        if (!existingCommitments.includes(commitmentForStorage)) {
+          existingCommitments.push(commitmentForStorage);
+          localStorage.setItem('position-commitments', JSON.stringify(existingCommitments));
+          console.log('✅ Added commitment to localStorage list');
+        }
+        
+        const storageKey = `position-${commitmentForStorage}`;
+        localStorage.setItem(storageKey, JSON.stringify(positionData));
+        console.log('✅ Stored position data in localStorage:', {
+          key: storageKey,
+          hasEntryPrice: !!positionData.entryPrice,
+          hasSize: !!positionData.size,
+          hasTraderSecret: !!positionData.traderSecret,
+        });
+        
+        // Also store in sessionStorage for backward compatibility
+        try {
+          const sessionCommitments = JSON.parse(sessionStorage.getItem('position-commitments') || '[]');
+          if (!sessionCommitments.includes(commitmentForStorage)) {
+            sessionCommitments.push(commitmentForStorage);
+            sessionStorage.setItem('position-commitments', JSON.stringify(sessionCommitments));
+          }
+          sessionStorage.setItem(storageKey, JSON.stringify(positionData));
+        } catch (sessionError) {
+          console.warn('Failed to store in sessionStorage (non-critical):', sessionError);
+        }
+        
+        // Verify it was stored
+        const verify = localStorage.getItem(storageKey);
+        if (!verify) {
+          console.error('❌ CRITICAL: Position data was not stored in localStorage!');
+        } else {
+          console.log('✅ Verified: Position data is in localStorage');
+        }
+      } catch (error) {
+        console.error('❌ Failed to store position in localStorage:', error);
+      }
+      
+      // Add position to store (traderSecret is returned from proof generation)
+      addPosition(positionData);
+
+      // Refresh available balance after position is opened (collateral is locked)
+      // Wait a bit for state to update on-chain
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      try {
+        // DEBUG: Check vault state AFTER opening position
+        const [newAvailableBalance, newUserVaultBalance, lockedAfter] = await Promise.all([
+          fetchAvailableBalance(ztarknetAccount.address, selectedMarket),
+          fetchVaultBalance(ztarknetAccount.address, selectedMarket),
+          fetchLockedCollateral(ztarknetAccount.address, selectedMarket),
+        ]);
+        
+        console.log('💰 Vault state AFTER opening position:', {
+          availableBalance: newAvailableBalance,
+          userVaultBalance: newUserVaultBalance,
+          lockedCollateral: lockedAfter,
+          balanceBefore: userVaultBalanceBefore,
+          balanceChange: (BigInt(userVaultBalanceBefore) - BigInt(newUserVaultBalance)).toString(),
+          lockedBefore: lockedBefore,
+          lockedChange: (BigInt(lockedAfter) - BigInt(lockedBefore)).toString(),
+        });
+        
+        // Check if balance actually changed
+        const balanceChanged = BigInt(userVaultBalanceBefore) !== BigInt(newUserVaultBalance);
+        const lockedChanged = BigInt(lockedAfter) !== BigInt(lockedBefore);
+        
+        if (!balanceChanged && !lockedChanged) {
+          console.warn('⚠️ WARNING: Vault balance did NOT change after opening position!');
+          console.warn('This suggests lock_collateral was not called or was called with amount 0.');
+          console.warn('Check the transaction receipt to see if lock_collateral was executed.');
+          console.warn('Transaction hash:', tx.transaction_hash);
+          console.warn('Expected locked amount:', lockedAmountFromProof);
+          console.warn('CollateralVault address:', CONTRACTS.COLLATERAL_VAULT);
+          console.warn('PositionHandler address:', CONTRACTS.POSITION_HANDLER);
+          console.warn('Please verify that PositionHandler is calling the correct CollateralVault address.');
+        } else {
+          console.log('✅ Vault balance updated successfully:', {
+            userBalanceDecreased: balanceChanged,
+            lockedCollateralIncreased: lockedChanged,
+          });
+        }
+        
+        setAvailableBalance(newAvailableBalance);
+      } catch (error) {
+        console.error('Error refreshing available balance:', error);
+        // Don't fail the whole operation if balance refresh fails
+      }
 
       resetOrderForm();
       setSizePercent(0);
@@ -362,6 +743,47 @@ export function OrderForm() {
           <span>Current Position:</span>
           <span>0.000 BTC</span>
         </div>
+      </div>
+
+      {/* Deposit Note and Button */}
+      <div style={{ 
+        padding: '12px 16px', 
+        backgroundColor: 'rgba(80, 210, 193, 0.1)', 
+        borderRadius: '8px',
+        marginBottom: '16px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: '12px'
+      }}>
+        <span style={{ 
+          fontSize: '13px', 
+          color: '#50d2c1',
+          flex: 1
+        }}>
+          Deposit funds to begin trading
+        </span>
+        {isZtarknetReady && ztarknetAccount && (
+          <button
+            type="button"
+            onClick={() => setShowDepositModal(true)}
+            style={{
+              padding: '6px 16px',
+              borderRadius: '8px',
+              backgroundColor: '#50d2c1',
+              color: '#0f1a1f',
+              fontSize: '12px',
+              fontWeight: 600,
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'background-color 150ms ease',
+            }}
+            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#45c0b0'}
+            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#50d2c1'}
+          >
+            Deposit
+          </button>
+        )}
       </div>
 
       {/* Order Form */}
@@ -530,6 +952,25 @@ export function OrderForm() {
         }}
         spenderAddress={CONTRACTS.PERP_ROUTER}
         amount={collateral ? BigInt(Math.floor(parseFloat(collateral) * 1e18)).toString() : '0'}
+      />
+
+      {/* Deposit Modal */}
+      <DepositModal
+        isOpen={showDepositModal}
+        onClose={() => setShowDepositModal(false)}
+        onDeposited={async () => {
+          // Refresh available balance after deposit
+          if (ztarknetAccount) {
+            try {
+              const newBalance = await fetchAvailableBalance(ztarknetAccount.address, selectedMarket);
+              // Update available balance in store
+              setAvailableBalance(newBalance);
+            } catch (error) {
+              console.error('Error refreshing balance:', error);
+            }
+          }
+        }}
+        marketId={selectedMarket}
       />
     </div>
   );

@@ -5,9 +5,11 @@ mod perp;
 
 /// Main function that routes to different perp actions
 /// action: 0 = open_market, 1 = open_limit, 2 = open_twap, 3 = close, 4 = close_tp, 5 = close_sl, 6 = liquidation
-/// Returns: commitment hash (ALL position details are PRIVATE)
+/// Returns: (commitment, collateral_released, payout, loss_to_vault)
+/// For open operations: returns (commitment, 0, 0, 0)
+/// For close operations: returns (commitment, collateral_released, payout, loss_to_vault)
 /// Note: Size, collateral, direction, PnL, fees are all validated in circuit but NOT revealed
-fn main(
+pub fn main(
     action: pub Field,
     // Private inputs (common) - ALL PRIVATE
     private_margin: Field,
@@ -43,13 +45,17 @@ fn main(
     twap_duration: pub Field,
     chunk_index: pub Field,
     total_chunks: pub Field,
-) -> pub Field {
+    // NEW: Collateral management inputs
+    deposited_balance: pub Field,  // For opening positions (user's vault balance)
+    locked_collateral: pub Field,  // For closing positions (amount locked when opening)
+) -> pub (Field, Field, Field, Field) {
     // Return: Only commitment hash
     // All position details (size, collateral, direction, PnL, fees) are PRIVATE
     
     if action == 0 {
         // Open position (market order)
-        let commitment = perp::open_position_market(
+        // Returns: (commitment, locked_amount) - locked_amount = private_margin
+        let (commitment, locked_amount) = perp::open_position_market(
             private_margin,
             private_position_size,
             private_trader_secret,
@@ -67,11 +73,15 @@ fn main(
             num_sources,
             min_sources,
             max_price_age,
+            deposited_balance,  // NEW: Pass deposited balance
         );
-        commitment
+        // Return (commitment, locked_amount, 0, 0) for open operations
+        // locked_amount = private_margin (no randomization)
+        (commitment, locked_amount, 0, 0)
     } else if action == 1 {
         // Open position (limit order)
-        let commitment = perp::open_position_limit(
+        // Returns: (commitment, locked_amount) - locked_amount = private_margin
+        let (commitment, locked_amount) = perp::open_position_limit(
             private_margin,
             private_position_size,
             private_trader_secret,
@@ -90,11 +100,14 @@ fn main(
             num_sources,
             min_sources,
             max_price_age,
+            deposited_balance,  // NEW: Pass deposited balance
         );
-        commitment
+        // Return (commitment, locked_amount, 0, 0) for open operations
+        (commitment, locked_amount, 0, 0)
     } else if action == 2 {
         // Open position (TWAP order)
-        let commitment = perp::open_position_twap(
+        // Returns: (commitment, locked_amount) - locked_amount = private_margin
+        let (commitment, locked_amount) = perp::open_position_twap(
             private_margin,
             private_position_size,
             private_trader_secret,
@@ -115,11 +128,14 @@ fn main(
             max_price_age,
             chunk_index,
             total_chunks,
+            deposited_balance,  // NEW: Pass deposited balance
         );
-        commitment
+        // Return (commitment, locked_amount, 0, 0) for open operations
+        (commitment, locked_amount, 0, 0)
     } else if action == 3 {
         // Close position
-        let commitment = perp::close_position(
+        // close_position returns (commitment, collateral_released, payout, loss_to_vault)
+        let (commitment, collateral_released, payout, loss_to_vault) = perp::close_position(
             private_margin,
             private_position_size,
             private_entry_price,
@@ -134,11 +150,13 @@ fn main(
             min_sources,
             max_price_age,
             trading_fee_bps,
+            locked_collateral,  // NEW: Pass locked collateral
         );
-        commitment
+        // Return all values for close operations
+        (commitment, collateral_released, payout, loss_to_vault)
     } else if action == 4 {
         // Close position (take profit)
-        let commitment = perp::close_position_take_profit(
+        let (commitment, collateral_released, payout, loss_to_vault) = perp::close_position_take_profit(
             private_margin,
             private_position_size,
             private_entry_price,
@@ -154,11 +172,13 @@ fn main(
             min_sources,
             max_price_age,
             trading_fee_bps,
+            locked_collateral,  // NEW: Pass locked collateral
         );
-        commitment
+        // Return all values for close operations
+        (commitment, collateral_released, payout, loss_to_vault)
     } else if action == 5 {
         // Close position (stop loss)
-        let commitment = perp::close_position_stop_loss(
+        let (commitment, collateral_released, payout, loss_to_vault) = perp::close_position_stop_loss(
             private_margin,
             private_position_size,
             private_entry_price,
@@ -174,8 +194,10 @@ fn main(
             min_sources,
             max_price_age,
             trading_fee_bps,
+            locked_collateral,  // NEW: Pass locked collateral
         );
-        commitment
+        // Return all values for close operations
+        (commitment, collateral_released, payout, loss_to_vault)
     } else if action == 6 {
         // Check liquidation
         let commitment = perp::check_liquidation(
@@ -193,16 +215,17 @@ fn main(
             num_sources,
             min_sources,
         );
-        commitment
+        // Return (commitment, 0, 0, 0) for liquidation
+        (commitment, 0, 0, 0)
     } else {
         // Invalid action - return zero commitment (will be rejected on-chain)
-        0
+        (0, 0, 0, 0)
     }
 }
 
 #[test]
 fn test_open_position_twap() {
-    let commitment = perp::open_position_twap(
+    let (commitment, locked_amount) = perp::open_position_twap(
         100,      // private_margin
         1000,     // private_position_size (chunk size)
         12345,    // private_trader_secret
@@ -223,13 +246,14 @@ fn test_open_position_twap() {
         60,       // max_price_age
         0,        // chunk_index (first chunk)
         6,        // total_chunks
+        10000,    // deposited_balance (NEW)
     );
     assert(commitment != 0);
 }
 
 #[test]
 fn test_open_position_market() {
-    let commitment = perp::open_position_market(
+    let (commitment, locked_amount) = perp::open_position_market(
         100,      // private_margin
         1000,     // private_position_size
         12345,    // private_trader_secret
@@ -247,13 +271,14 @@ fn test_open_position_market() {
         5,        // num_sources
         3,        // min_sources
         60,       // max_price_age
+        10000,    // deposited_balance (NEW)
     );
     assert(commitment != 0);
 }
 
 #[test]
 fn test_close_position() {
-    let commitment = perp::close_position(
+    let (commitment, collateral_released, payout, loss_to_vault) = perp::close_position(
         100,      // private_margin
         1000,     // private_position_size
         50000,    // private_entry_price
@@ -268,6 +293,7 @@ fn test_close_position() {
         3,        // min_sources
         60,       // max_price_age
         10,       // trading_fee_bps (0.1%)
+        100,      // locked_collateral (NEW)
     );
     assert(commitment != 0);
 }

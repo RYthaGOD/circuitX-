@@ -42,14 +42,20 @@ export function MarketSelector() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch prices from Pyth Network - only BTC/USD for now
+  // Fetch prices from Pyth Network for all markets
   useEffect(() => {
     const fetchAllPrices = async () => {
       try {
-        // Only fetch BTC/USD
-        const marketDataPromises = [[MARKETS.BTC_USD, 'BTC_USD']].map(async ([marketId, key]) => {
+        // Fetch prices for all supported markets
+        const marketDataPromises = [
+          [MARKETS.BTC_USD, 'BTC_USD'],
+          [MARKETS.ETH_USD, 'ETH_USD'],
+          [MARKETS.STRK_USD, 'STRK_USD'],
+          [MARKETS.SOL_USD, 'SOL_USD'],
+          [MARKETS.BNB_USD, 'BNB_USD'],
+        ].map(async ([marketId, key]) => {
           try {
-            const priceData = await fetchPythPrice();
+            const priceData = await fetchPythPrice(marketId);
             console.log('MarketSelector: Fetched price from Pyth:', priceData);
             
             // Ensure price is valid
@@ -123,45 +129,112 @@ export function MarketSelector() {
 
   return (
     <div className="px-2 py-2">
-      <div className="bg-[#0f1a1f] rounded border border-[rgba(255,255,255,0.1)] px-3 py-2">
-        <div className="flex items-center justify-between">
-          {/* Left: Market Selector with BTC Logo */}
-          <div className="flex items-center gap-2">
-            {[MARKETS.BTC_USD].map((marketId) => {
-              const info = MARKET_INFO[marketId as keyof typeof MARKET_INFO];
-              if (!info) return null;
+      <div className="flex items-center justify-between">
+        {/* Market Selector Button - Standalone */}
+        {(() => {
+          const marketId = selectedMarket || MARKETS.BTC_USD;
+          const info = MARKET_INFO[marketId as keyof typeof MARKET_INFO];
+          if (!info) return null;
 
-              return (
-                <button
-                  key={marketId}
-                  onClick={() => setSelectedMarket(marketId)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 transition-all group"
-                >
-                  {/* BTC Logo - Orange circle with Bitcoin symbol */}
-                  <div className="w-6 h-6 rounded-full bg-[#f7931a] flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">₿</span>
-                  </div>
-                  <span className="text-sm font-medium text-white">BTC-USDC</span>
-                  <ChevronDown size={14} className="text-white/70 group-hover:text-white transition-colors" />
-                </button>
-              );
-            })}
-          </div>
+          // Get logo image URL based on market
+          const marketLogos: Record<string, string> = {
+            [MARKETS.BTC_USD]: 'https://assets.coingecko.com/coins/images/1/large/bitcoin.png',
+            [MARKETS.ETH_USD]: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIa3GDAlj9jCzDOu-MBV7_NRhZ4VlzN-i8pg&s',
+            [MARKETS.STRK_USD]: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQyryehB1_k7vVWpfloLj_2NeOxHTmOubzNHQ&s',
+            [MARKETS.SOL_USD]: 'https://images.seeklogo.com/logo-png/42/2/solana-sol-logo-png_seeklogo-423095.png',
+            [MARKETS.BNB_USD]: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRlzPe83XrDQcclbJwYqOZy6lnAcc4FALZ6kw&s',
+          };
 
-          {/* Right: Market Stats */}
-          {currentMarket ? (
-            <div className="flex items-center gap-8 text-xs">
+          const logoUrl = marketLogos[marketId] || marketLogos[MARKETS.BTC_USD];
+          const displaySymbol = info.symbol.replace('/USD', '-USDC');
+          
+          // Fallback colors and symbols for when images fail to load
+          const fallbackColors: Record<string, string> = {
+            [MARKETS.BTC_USD]: '#f7931a',
+            [MARKETS.ETH_USD]: '#627EEA',
+            [MARKETS.STRK_USD]: '#50d2c1',
+            [MARKETS.SOL_USD]: '#14F195',
+            [MARKETS.BNB_USD]: '#F3BA2F',
+          };
+
+          const fallbackSymbols: Record<string, string> = {
+            [MARKETS.BTC_USD]: '₿',
+            [MARKETS.ETH_USD]: 'Ξ',
+            [MARKETS.STRK_USD]: 'S',
+            [MARKETS.SOL_USD]: '◎',
+            [MARKETS.BNB_USD]: 'B',
+          };
+
+          const fallbackColor = fallbackColors[marketId as keyof typeof fallbackColors] || '#50d2c1';
+          const fallbackSymbol = fallbackSymbols[marketId as keyof typeof fallbackSymbols] || '?';
+
+          return (
+            <button
+              onClick={() => {
+                // Show dropdown or cycle through markets
+                const allMarkets = [MARKETS.BTC_USD, MARKETS.ETH_USD, MARKETS.STRK_USD, MARKETS.SOL_USD, MARKETS.BNB_USD] as const;
+                const currentIndex = allMarkets.indexOf(marketId as typeof MARKETS.BTC_USD);
+                const nextIndex = (currentIndex + 1) % allMarkets.length;
+                setSelectedMarket(allMarkets[nextIndex]);
+              }}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg transition-all group"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                border: 'none',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              }}
+            >
+              {/* Market Logo Image */}
+              <div className="relative w-6 h-6">
+                <img 
+                  src={logoUrl}
+                  alt={info.name}
+                  className="w-6 h-6 rounded-full object-cover"
+                  style={{
+                    backgroundColor: fallbackColor,
+                    display: 'block',
+                  }}
+                  onError={(e) => {
+                    // Fallback to colored circle with symbol if image fails to load
+                    const target = e.currentTarget as HTMLImageElement;
+                    target.style.display = 'none';
+                    // Check if fallback already exists
+                    const parent = target.parentElement;
+                    if (parent && !parent.querySelector('.logo-fallback')) {
+                      const fallback = document.createElement('div');
+                      fallback.className = 'logo-fallback w-6 h-6 rounded-full flex items-center justify-center';
+                      fallback.style.backgroundColor = fallbackColor;
+                      fallback.innerHTML = `<span class="text-white text-xs font-bold">${fallbackSymbol}</span>`;
+                      parent.appendChild(fallback);
+                    }
+                  }}
+                />
+              </div>
+              <span className="text-sm font-semibold text-white">{displaySymbol}</span>
+              <ChevronDown size={14} className="text-white/70 group-hover:text-white transition-colors" />
+            </button>
+          );
+        })()}
+
+        {/* Right: Market Stats */}
+        {currentMarket ? (
+            <div className="flex items-center gap-10 text-xs">
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5 underline">Mark</span>
-                <span className="text-white font-medium text-sm">
+                <span className="text-white/50 text-[10px] mb-1 underline">Mark</span>
+                <span className="text-white font-semibold text-base">
                   {currentMarket.currentPrice && parseFloat(currentMarket.currentPrice) > 0
                     ? formatPrice(currentMarket.currentPrice)
                     : 'Loading...'}
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5 underline">Oracle</span>
-                <span className="text-white font-medium text-sm">
+                <span className="text-white/50 text-[10px] mb-1 underline">Oracle</span>
+                <span className="text-white font-semibold text-base">
                   {(() => {
                     if (!currentMarket.currentPrice || parseFloat(currentMarket.currentPrice) <= 0) {
                       return 'Loading...';
@@ -174,53 +247,52 @@ export function MarketSelector() {
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5">24h Change</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#50d2c1] font-medium text-sm">
+                <span className="text-white/50 text-[10px] mb-1">24h Change</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#22c55e] font-semibold text-base">
                     +{mockPriceChange24h.toLocaleString()}
                   </span>
-                  <span className="text-[#50d2c1] font-medium text-sm">
+                  <span className="text-[#22c55e] font-semibold text-base">
                     +{mockPriceChangePercent.toFixed(2)}%
                   </span>
                 </div>
               </div>
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5">24h Volume</span>
-                <span className="text-white font-medium text-sm">
+                <span className="text-white/50 text-[10px] mb-1">24h Volume</span>
+                <span className="text-white font-semibold text-base">
                   ${formatLargeNumber(currentMarket.volume24h)}
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5 underline">Open Interest</span>
-                <span className="text-white font-medium text-sm">
+                <span className="text-white/50 text-[10px] mb-1 underline">Open Interest</span>
+                <span className="text-white font-semibold text-base">
                   ${formatLargeNumber(currentMarket.openInterest)}
                 </span>
               </div>
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5 underline">Funding / Countdown</span>
-                <div className="flex items-center gap-1">
-                  <span className="text-[#50d2c1] font-medium text-sm">
-                    {mockFundingRate.toFixed(4)}%
+                <span className="text-white/50 text-[10px] mb-1 underline">Funding / Countdown</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[#ef4444] font-semibold text-base">
+                    -{Math.abs(mockFundingRate * 100).toFixed(4)}%
                   </span>
-                  <span className="text-white/70 font-medium text-sm">
+                  <span className="text-white/70 font-semibold text-sm">
                     {fundingCountdown}
                   </span>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-8 text-xs">
+            <div className="flex items-center gap-10 text-xs">
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5 underline">Mark</span>
-                <span className="text-white font-medium text-sm">Loading...</span>
+                <span className="text-white/50 text-[10px] mb-1 underline">Mark</span>
+                <span className="text-white font-semibold text-base">Loading...</span>
               </div>
               <div className="flex flex-col">
-                <span className="text-white/50 text-[10px] mb-0.5 underline">Oracle</span>
-                <span className="text-white font-medium text-sm">Loading...</span>
+                <span className="text-white/50 text-[10px] mb-1 underline">Oracle</span>
+                <span className="text-white font-semibold text-base">Loading...</span>
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   );

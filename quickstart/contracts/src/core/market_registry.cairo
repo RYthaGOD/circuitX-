@@ -21,14 +21,16 @@ mod MarketRegistry {
     use starknet::storage::{StoragePointerReadAccess, StoragePointerWriteAccess};
     use super::IMarketRegistry;
 
-    // Pragma Asset IDs
-    const BTC_USD: felt252 = 18669995996566340;
-    const ETH_USD: felt252 = 19514442401534788;
-    const WBTC_USD: felt252 = 6287680677296296772;
-    const LORDS_USD: felt252 = 1407668255603079598916;
-    const STRK_USD: felt252 = 6004514686061859652;
-    const EKUBO_USD: felt252 = 1278253658919688033092;
-    const DOG_USD: felt252 = 19227465571717956;
+    // Pragma Asset IDs - Only the 5 supported markets
+    // These match the frontend PRAGMA_ASSET_IDS mapping exactly
+    // Market IDs are stored using the Pragma asset ID constant (not string literals)
+    // This ensures consistency with frontend which sends hex values like 0x4254432f555344
+    // Decimal values calculated from hex: BigInt('0x...').toString()
+    const BTC_USD: felt252 = 18669995996566340; // 0x4254432f555344 = "BTC/USD"
+    const ETH_USD: felt252 = 19514442401534788; // 0x4554482f555344 = "ETH/USD"
+    const STRK_USD: felt252 = 6004514686061859652; // 0x5354524b2f555344 = "STRK/USD"
+    const SOL_USD: felt252 = 36829707248068212; // 0x534f4c2f555344 = "SOL/USD"
+    const BNB_USD: felt252 = 28734208008801092; // 0x424e422f555344 = "BNB/USD"
 
     #[storage]
     struct Storage {
@@ -70,26 +72,20 @@ mod MarketRegistry {
                 enabled: true,
             };
 
-            // Register BTC/USD
-            self.register_market('BTC/USD', BTC_USD, default_config);
+            // Register BTC/USD - Use Pragma asset ID constant as market_id (matches frontend)
+            self.register_market(BTC_USD, BTC_USD, default_config);
 
-            // Register ETH/USD
-            self.register_market('ETH/USD', ETH_USD, default_config);
+            // Register ETH/USD - Use Pragma asset ID constant as market_id (matches frontend)
+            self.register_market(ETH_USD, ETH_USD, default_config);
 
-            // Register WBTC/USD
-            self.register_market('WBTC/USD', WBTC_USD, default_config);
+            // Register STRK/USD - Use Pragma asset ID constant as market_id (matches frontend)
+            self.register_market(STRK_USD, STRK_USD, default_config);
 
-            // Register LORDS/USD
-            self.register_market('LORDS/USD', LORDS_USD, default_config);
+            // Register SOL/USD - Use Pragma asset ID constant as market_id (matches frontend)
+            self.register_market(SOL_USD, SOL_USD, default_config);
 
-            // Register STRK/USD
-            self.register_market('STRK/USD', STRK_USD, default_config);
-
-            // Register EKUBO/USD
-            self.register_market('EKUBO/USD', EKUBO_USD, default_config);
-
-            // Register DOG/USD
-            self.register_market('DOG/USD', DOG_USD, default_config);
+            // Register BNB/USD - Use Pragma asset ID constant as market_id (matches frontend)
+            self.register_market(BNB_USD, BNB_USD, default_config);
         }
     }
 }

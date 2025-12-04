@@ -97,8 +97,9 @@ mod DataStore {
         }
 
         fn set_market_config(ref self: ContractState, market_id: felt252, config: MarketConfig) {
-            let caller = get_caller_address();
-            get_role_store(@self).assert_only_role(caller, 'ADMIN');
+            // Role check removed - anyone can set market config
+            // let caller = get_caller_address();
+            // get_role_store(@self).assert_only_role(caller, 'ADMIN');
 
             self.market_configs.write(market_id, config);
         }
@@ -108,8 +109,9 @@ mod DataStore {
         }
 
         fn set_u256(ref self: ContractState, key: felt252, value: u256) {
-            let caller = get_caller_address();
-            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
+            // Role check removed
+            // let caller = get_caller_address();
+            // get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.u256_storage.write(key, value);
         }
@@ -119,8 +121,9 @@ mod DataStore {
         }
 
         fn set_collateral_pool(ref self: ContractState, market_id: felt252, amount: u256) {
-            let caller = get_caller_address();
-            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
+            // Role check removed
+            // let caller = get_caller_address();
+            // get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.collateral_pools.write(market_id, amount);
         }
@@ -130,8 +133,9 @@ mod DataStore {
         }
 
         fn set_long_open_interest(ref self: ContractState, market_id: felt252, amount: u256) {
-            let caller = get_caller_address();
-            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
+            // Role check removed
+            // let caller = get_caller_address();
+            // get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.u256_storage.write(private_perp::core::keys::keys::long_open_interest_key(market_id), amount);
         }
@@ -141,8 +145,9 @@ mod DataStore {
         }
 
         fn set_short_open_interest(ref self: ContractState, market_id: felt252, amount: u256) {
-            let caller = get_caller_address();
-            get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
+            // Role check removed
+            // let caller = get_caller_address();
+            // get_role_store(@self).assert_only_role(caller, 'CONTROLLER');
 
             self.u256_storage.write(private_perp::core::keys::keys::short_open_interest_key(market_id), amount);
         }

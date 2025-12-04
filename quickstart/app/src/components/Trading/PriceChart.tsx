@@ -8,7 +8,7 @@ import {
 } from 'lightweight-charts';
 import { useTradingStore } from '../../stores/tradingStore';
 import { fetchPythHistoricalData, fetchPythPrice } from '../../services/pythService';
-import { MARKETS } from '../../config/contracts';
+import { MARKETS, MARKET_INFO } from '../../config/contracts';
 import { Loader2 } from 'lucide-react';
 
 export function PriceChart() {
@@ -16,6 +16,7 @@ export function PriceChart() {
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const selectedMarket = useTradingStore((state) => state.selectedMarket);
+  const setSelectedMarket = useTradingStore((state) => state.setSelectedMarket);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -152,14 +153,9 @@ export function PriceChart() {
       setError(null);
 
       try {
-        // Only support BTC/USD for now
-        if (selectedMarket !== MARKETS.BTC_USD) {
-          throw new Error('Only BTC/USD is supported');
-        }
-
         // Fetch historical candlestick data (last 100 entries, 1 hour interval)
         // Pyth service will fetch current price internally for synthetic data generation
-        const historical = await fetchPythHistoricalData('1h', 100);
+        const historical = await fetchPythHistoricalData('1h', 100, selectedMarket);
 
         // Check if we have valid data
         if (!historical || !historical.prices || historical.prices.length === 0) {
@@ -235,7 +231,7 @@ export function PriceChart() {
           }
         } else if (seriesRef.current) {
           // Fallback: use current price to create simple data (matching uniperp fallback pattern)
-          const currentPriceData = await fetchPythPrice();
+          const currentPriceData = await fetchPythPrice(selectedMarket);
           const currentPrice = currentPriceData.price;
           const fallbackData = [
             {
@@ -294,43 +290,21 @@ export function PriceChart() {
     return () => clearInterval(interval);
   }, [selectedMarket]);
 
+  // Available markets
+  const availableMarkets = [
+    MARKETS.BTC_USD,
+    MARKETS.ETH_USD,
+    MARKETS.STRK_USD,
+    MARKETS.SOL_USD,
+    MARKETS.BNB_USD,
+  ];
+
+  const currentMarketInfo = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO];
+
   return (
     <div className="h-full flex flex-col" style={{ backgroundColor: '#0f1a1f' }}>
-      {/* Chart Controls - Hyperliquid style */}
-      <div className="flex items-center justify-between px-2 py-1 border-b" style={{ borderColor: '#2b2b43' }}>
-        <div className="flex items-center gap-2">
-          <button 
-            className="px-3 py-1 rounded text-xs font-medium transition-colors"
-            style={{ 
-              color: '#d1d4dc',
-              backgroundColor: 'transparent',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e222d'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-          >
-            5m
-          </button>
-          <button 
-            className="px-3 py-1 rounded text-xs font-medium transition-colors"
-            style={{ 
-              color: '#26a69a',
-              backgroundColor: '#1e222d',
-            }}
-          >
-            1h
-          </button>
-          <button 
-            className="px-3 py-1 rounded text-xs font-medium transition-colors"
-            style={{ 
-              color: '#d1d4dc',
-              backgroundColor: 'transparent',
-            }}
-            onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1e222d'}
-            onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-          >
-            D
-          </button>
-        </div>
+      {/* Chart Controls - Minimal header */}
+      <div className="flex items-center justify-end px-2 py-1 border-b" style={{ borderColor: '#2b2b43' }}>
         {isLoading && (
           <div className="flex items-center gap-2" style={{ color: '#758696' }}>
             <Loader2 size={12} className="animate-spin" />

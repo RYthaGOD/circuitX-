@@ -3,6 +3,8 @@ import { Contract } from 'starknet';
 import { CONTRACTS, NETWORK } from '../../config/contracts';
 import { useTradingStore } from '../../stores/tradingStore';
 import { fetchYusdBalance } from '../../lib/balanceUtils';
+import { X, Copy, Check, ExternalLink, Coins, Wallet, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { toast } from 'sonner';
 
 const YUSD_ABI = [
   {
@@ -33,14 +35,28 @@ export function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
   const [status, setStatus] = useState<MintState>('idle');
   const [message, setMessage] = useState('');
   const [txHash, setTxHash] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setStatus('idle');
       setMessage('');
       setTxHash(null);
+      setCopied(false);
     }
   }, [isOpen]);
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    toast.success('Address copied to clipboard');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const formatAddress = (address: string) => {
+    if (!address) return 'Not ready yet';
+    return `${address.slice(0, 6)}...${address.slice(-4)}`;
+  };
 
   if (!isOpen) return null;
 
@@ -87,149 +103,136 @@ export function FaucetModal({ isOpen, onClose }: FaucetModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-md flex items-center justify-center z-[10000] p-4">
-      <div className="bg-[#0c191e] text-white rounded-3xl border border-white/10 w-full max-w-lg p-8 relative shadow-2xl">
+    <div className="faucet-modal-overlay">
+      <div className="faucet-modal-container">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors text-xl"
+          className="faucet-modal-close-btn"
+          aria-label="Close modal"
         >
-          ✕
+          <X size={20} />
         </button>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', paddingBottom: '8px' }}>
-          <div style={{ textAlign: 'center' }}>
-            <h2 style={{ fontSize: '30px', fontWeight: 700, marginBottom: '8px' }}>yUSD Faucet</h2>
-            <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.7)' }}>
-              Mint 1000 yUSD to your Circuit Ztarknet wallet on{' '}
-              <span style={{ color: '#50d2c1', fontWeight: 600 }}>Ztarknet</span>.
-            </p>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '18px',
-              padding: '20px',
-            }}
-          >
-            <p style={{ fontSize: '11px', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', marginBottom: '8px' }}>
-              Ztarknet Address
-            </p>
-            <div
-              style={{
-                fontFamily: 'monospace',
-                fontSize: '13px',
-                backgroundColor: 'rgba(255,255,255,0.07)',
-                padding: '12px',
-                borderRadius: '12px',
-                wordBreak: 'break-all',
-              }}
-            >
-              {ztarknetAccount ? ztarknetAccount.address : 'Not ready yet'}
+        <div className="faucet-modal-content">
+          {/* Header */}
+          <div className="faucet-modal-header">
+            <div className="faucet-modal-icon-wrapper">
+              <Coins size={32} />
             </div>
-            {!isZtarknetReady && (
-              <p style={{ fontSize: '12px', color: '#fca5a5', marginTop: '10px' }}>
-                Complete wallet setup before requesting faucet funds.
-              </p>
-            )}
+            <h2 className="faucet-modal-title">yUSD Faucet</h2>
+            <p className="faucet-modal-description">
+              Get 1000 yUSD tokens for testing on{' '}
+              <span className="faucet-modal-network-name">Ztarknet</span>
+            </p>
           </div>
 
-          <div
-            style={{
-              backgroundColor: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: '18px',
-              padding: '20px',
-            }}
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '13px', color: 'rgba(255,255,255,0.7)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                <span>Contract</span>
-                <span style={{ fontFamily: 'monospace', fontSize: '12px', textAlign: 'right' }}>
-                  {CONTRACTS.YUSD_TOKEN}
+          {/* Wallet Address Section */}
+          <div className="faucet-modal-section">
+            <div className="faucet-modal-section-header">
+              <Wallet size={16} />
+              <span>Ztarknet Address</span>
+            </div>
+            <div className="faucet-modal-address-container">
+              <div className="faucet-modal-address">
+                {ztarknetAccount ? (
+                  <>
+                    <span className="faucet-modal-address-full">{ztarknetAccount.address}</span>
+                    <button
+                      onClick={() => copyToClipboard(ztarknetAccount.address)}
+                      className="faucet-modal-copy-btn"
+                      title="Copy address"
+                    >
+                      {copied ? <Check size={16} /> : <Copy size={16} />}
+                    </button>
+                  </>
+                ) : (
+                  <span className="faucet-modal-address-placeholder">Not ready yet</span>
+                )}
+              </div>
+              {!isZtarknetReady && (
+                <div className="faucet-modal-warning">
+                  <AlertCircle size={14} />
+                  <span>Complete wallet setup before requesting faucet funds</span>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Transaction Details */}
+          <div className="faucet-modal-section">
+            <div className="faucet-modal-details">
+              <div className="faucet-modal-detail-row">
+                <span className="faucet-modal-detail-label">Amount</span>
+                <span className="faucet-modal-detail-value highlight">1000 yUSD</span>
+              </div>
+              <div className="faucet-modal-detail-row">
+                <span className="faucet-modal-detail-label">Contract</span>
+                <span className="faucet-modal-detail-value monospace">
+                  {formatAddress(CONTRACTS.YUSD_TOKEN)}
                 </span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                <span>Amount</span>
-                <span>1000 yUSD</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                <span>Network</span>
-                <span style={{ textAlign: 'right', fontSize: '12px' }}>{NETWORK.RPC_URL}</span>
+              <div className="faucet-modal-detail-row">
+                <span className="faucet-modal-detail-label">Network</span>
+                <span className="faucet-modal-detail-value">Ztarknet</span>
               </div>
             </div>
+            
             <button
               onClick={handleMint}
               disabled={status === 'minting' || !isZtarknetReady}
-              style={{
-                marginTop: '18px',
-                width: '100%',
-                padding: '14px 0',
-                borderRadius: '14px',
-                backgroundColor: '#50d2c1',
-                color: '#0f1a1f',
-                fontWeight: 600,
-                fontSize: '15px',
-                opacity: status === 'minting' || !isZtarknetReady ? 0.5 : 1,
-                cursor: status === 'minting' || !isZtarknetReady ? 'not-allowed' : 'pointer',
-                transition: 'background-color 150ms ease',
-              }}
+              className={`faucet-modal-mint-btn ${status === 'minting' ? 'minting' : ''} ${status === 'success' ? 'success' : ''}`}
             >
-              {status === 'minting' ? 'Minting...' : 'Mint 1000 yUSD'}
+              {status === 'minting' ? (
+                <>
+                  <Loader2 size={18} className="faucet-modal-spinner" />
+                  <span>Minting...</span>
+                </>
+              ) : status === 'success' ? (
+                <>
+                  <CheckCircle2 size={18} />
+                  <span>Minted Successfully!</span>
+                </>
+              ) : (
+                <>
+                  <Coins size={18} />
+                  <span>Mint 1000 yUSD</span>
+                </>
+              )}
             </button>
           </div>
 
+          {/* Status Message */}
           {message && (
-            <div
-              style={{
-                borderRadius: '18px',
-                border:
-                  status === 'error'
-                    ? '1px solid rgba(248,113,113,0.4)'
-                    : status === 'success'
-                    ? '1px solid rgba(80,210,193,0.4)'
-                    : '1px solid rgba(255,255,255,0.12)',
-                backgroundColor:
-                  status === 'error'
-                    ? 'rgba(248,113,113,0.1)'
-                    : status === 'success'
-                    ? 'rgba(80,210,193,0.1)'
-                    : 'rgba(255,255,255,0.05)',
-                padding: '16px',
-                marginTop: '18px',
-                textAlign: 'center',
-                fontSize: '13px',
-                color:
-                  status === 'error'
-                    ? '#fecaca'
-                    : status === 'success'
-                    ? '#50d2c1'
-                    : 'rgba(255,255,255,0.8)',
-              }}
-            >
-              <p>{message}</p>
-              {txHash && (
-                <a
-                  href={`${NETWORK.EXPLORER_URL}/tx/${txHash}`}
-                  target="_blank"
-                  rel="noreferrer"
-                  style={{
-                    display: 'inline-block',
-                    marginTop: '10px',
-                    fontSize: '12px',
-                    textDecoration: 'underline',
-                    color: 'inherit',
-                  }}
-                >
-                  View transaction ↗
-                </a>
-              )}
+            <div className={`faucet-modal-status ${status}`}>
+              <div className="faucet-modal-status-icon">
+                {status === 'error' ? (
+                  <AlertCircle size={18} />
+                ) : status === 'success' ? (
+                  <CheckCircle2 size={18} />
+                ) : (
+                  <Loader2 size={18} className="faucet-modal-spinner" />
+                )}
+              </div>
+              <div className="faucet-modal-status-content">
+                <p className="faucet-modal-status-message">{message}</p>
+                {txHash && (
+                  <a
+                    href={`${NETWORK.EXPLORER_URL}/tx/${txHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="faucet-modal-tx-link"
+                  >
+                    <span>View on Explorer</span>
+                    <ExternalLink size={14} />
+                  </a>
+                )}
+              </div>
             </div>
           )}
 
-          <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', marginTop: '30px' }}>
-            Gas fees are paid from your Circuit Ztarknet wallet.
+          {/* Footer Note */}
+          <p className="faucet-modal-footer-note">
+            Gas fees are paid from your Ztarknet wallet
           </p>
         </div>
       </div>

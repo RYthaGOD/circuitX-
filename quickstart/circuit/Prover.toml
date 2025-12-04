@@ -47,3 +47,7 @@ twap_price = "0"
 twap_duration = "0"
 chunk_index = "0"
 total_chunks = "0"
+
+# NEW: Collateral management inputs
+deposited_balance = "10000"  # For opening positions (user's vault balance) - required for action 0, 1, 2
+locked_collateral = "0"      # For closing positions (amount locked when opening) - required for action 3, 4, 5

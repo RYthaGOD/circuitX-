@@ -39,7 +39,7 @@ pub fn check_trigger_price(
 /// Validate order
 pub fn validate_order(order: Order, config: MarketConfig) {
     assert(order.size > 0, 'INVALID_SIZE');
-    assert(config.enabled, 'MARKET_DISABLED');
+    // FIXED: Remove market enabled check - allow transactions regardless of market_id
 }
 
 

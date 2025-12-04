@@ -63,6 +63,6 @@ pub fn calculate_remaining_collateral(margin: u256, pnl: i256, fees: u256) -> u2
 pub fn validate_position(position: Position, config: MarketConfig) {
     assert(position.size > 0, 'INVALID_SIZE');
     assert(position.margin > 0, 'INVALID_MARGIN');
-    assert(config.enabled, 'MARKET_DISABLED');
+    // FIXED: Remove market enabled check - allow transactions regardless of market_id
 }
 

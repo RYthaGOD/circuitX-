@@ -62,13 +62,12 @@ export function calculateLiquidationPrice(
   leverage: number = 20,
   minMarginRatio: number = 5 // 5% minimum margin ratio
 ): number | null {
-  if (!position.entryPrice || !position.size || !position.margin) {
+  if (!position.entryPrice || !position.margin) {
     return null;
   }
 
   const entryPrice = parseFloat(position.entryPrice);
   const margin = parseFloat(position.margin);
-  const positionSize = parseFloat(position.size);
 
   // Liquidation occurs when remaining margin = required margin
   // For long: liquidation_price = entry_price * (1 - (1/leverage) + (min_margin_ratio/100))

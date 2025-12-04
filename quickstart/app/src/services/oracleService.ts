@@ -1,34 +1,20 @@
 import { Contract, Account, RpcProvider, cairo } from 'starknet';
-import { CONTRACTS, NETWORK, MARKETS, MARKET_INFO } from '../config/contracts';
+import { CONTRACTS, NETWORK, MARKETS, MARKET_INFO, getMarketIdFelt } from '../config/contracts';
 import { fetchPythPrice } from './pythService';
 
 /**
- * Pragma Asset IDs - Exact felt252 values used by the contract
- * These match the values defined in contracts/src/core/oracle.cairo
- * CRITICAL: Using exact values ensures market_id matches what's stored in DataStore
- */
-const PRAGMA_ASSET_IDS: Record<string, string> = {
-  'BTC/USD': '0x4254432f555344', // Pragma asset ID: 18669995996566340 (ASCII "BTC/USD")
-  'ETH/USD': '0x4554482f555344', // Pragma asset ID: 19514442401534788 (ASCII "ETH/USD")
-  'WBTC/USD': '0x574254432f555344', // Pragma asset ID: 6287680677296296772
-  'LORDS/USD': '0x4c4f5244532f555344', // Pragma asset ID: 1407668255603079598916
-  'STRK/USD': '0x5354524b2f555344', // Pragma asset ID: 6004514686061859652
-  'EKUBO/USD': '0x454b55424f2f555344', // Pragma asset ID: 1278253658919688033092
-  'DOG/USD': '0x444f472f555344', // Pragma asset ID: 19227465571717956
-};
-
-/**
  * Convert a string to its felt252 numeric representation
- * Uses exact Pragma asset IDs to ensure market_id matches what's stored in DataStore
+ * Uses shared getMarketIdFelt function to ensure market_id matches what's stored in DataStore
  * This is CRITICAL for avoiding MARKET_DISABLED errors
  */
 function stringToFelt252(str: string): string {
-  // Use exact Pragma asset ID if available - this matches contract expectations
-  if (PRAGMA_ASSET_IDS[str]) {
-    return PRAGMA_ASSET_IDS[str];
+  try {
+    // Use shared function for known markets - this ensures consistency
+    return getMarketIdFelt(str);
+  } catch {
+    // Fallback to cairo.felt() for other strings
+    return cairo.felt(str);
   }
-  // Fallback to cairo.felt() for other strings
-  return cairo.felt(str);
 }
 
 const MOCK_ORACLE_ABI = [
@@ -121,19 +107,20 @@ export async function updateOraclePrice(
  */
 export async function fetchPriceFromPyth(marketId: string): Promise<number> {
   try {
-    // Only BTC/USD is supported for now (matching the chart)
-    if (marketId === MARKETS.BTC_USD) {
-      const priceData = await fetchPythPrice();
-      return priceData.price;
-    }
-    
-    // For other markets, return 0 (not supported yet)
-    console.warn(`Market ${marketId} not supported by Pyth feed yet`);
-    return 0;
+    // Fetch price for the specified market
+    const priceData = await fetchPythPrice(marketId);
+    return priceData.price;
   } catch (error) {
-    console.error('Error fetching price from Pyth:', error);
-    // Return fallback price for BTC
-    return marketId === MARKETS.BTC_USD ? 91168 : 0;
+    console.error(`Error fetching price from Pyth for ${marketId}:`, error);
+    // Return fallback prices
+    const fallbackPrices: Record<string, number> = {
+      [MARKETS.BTC_USD]: 91168,
+      [MARKETS.ETH_USD]: 3000,
+      [MARKETS.STRK_USD]: 1.5,
+      [MARKETS.SOL_USD]: 150,
+      [MARKETS.BNB_USD]: 600,
+    };
+    return fallbackPrices[marketId] || 0;
   }
 }
 
@@ -207,7 +194,10 @@ export async function updateOraclePriceFromPyth(
 export async function updateOraclePricesFromFeed(account: Account) {
   const markets = [
     { id: MARKETS.BTC_USD },
-    // Add more markets as they become available in Pyth
+    { id: MARKETS.ETH_USD },
+    { id: MARKETS.STRK_USD },
+    { id: MARKETS.SOL_USD },
+    { id: MARKETS.BNB_USD },
   ];
 
   const results = [];

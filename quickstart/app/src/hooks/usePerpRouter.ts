@@ -50,32 +50,28 @@ export function usePerpRouter() {
       // Like the example app, we should NOT convert values again as that causes felt252 overflow
       // The proof from proofService is already properly formatted by getZKHonkCallData()
       
-      // Extract only market_id and commitment from publicInputs (first 2 elements)
-      if (publicInputs.length < 2) {
-        throw new Error(`Invalid publicInputs: expected at least 2 elements (market_id, commitment), got ${publicInputs.length}`);
+      // Extract market_id, commitment, and locked_amount from publicInputs (first 3 elements)
+      // FIXED: Contract now expects 3 elements: [market_id, commitment, locked_amount]
+      if (publicInputs.length < 3) {
+        throw new Error(`Invalid publicInputs: expected at least 3 elements (market_id, commitment, locked_amount), got ${publicInputs.length}`);
       }
       
-      const minimalPublicInputs = [publicInputs[0], publicInputs[1]]; // [market_id, commitment]
+      const minimalPublicInputs = [publicInputs[0], publicInputs[1], publicInputs[2]]; // [market_id, commitment, locked_amount]
       
-      // 🔍 DEBUG: Log the market_id in public inputs
-      // CRITICAL: Ensure market_id is in correct format
-      const expectedMarketId = '0x4254432f555344'; // BTC/USD Pragma asset ID
+      // Validate market_id format (must be hex string with 0x prefix)
+      // Don't force a specific market - use the actual market ID from inputs
       const actualMarketId = publicInputs[0]?.toLowerCase();
       
-      if (actualMarketId !== expectedMarketId) {
-        console.warn('⚠️  Market ID format mismatch, correcting...', {
-          got: actualMarketId,
-          expected: expectedMarketId,
-        });
-        // Force correct format
-        publicInputs[0] = expectedMarketId;
+      if (!actualMarketId || !actualMarketId.startsWith('0x')) {
+        throw new Error(`Invalid market ID format: ${actualMarketId}. Must be a hex string with 0x prefix.`);
       }
       
       console.log('🔍 Public Inputs (usePerpRouter):', {
         marketIdInPublicInputs: publicInputs[0],
-        expectedPragmaId: expectedMarketId,
-        matches: publicInputs[0]?.toLowerCase() === expectedMarketId,
         commitment: publicInputs[1]?.substring(0, 20) + '...',
+        lockedAmount: publicInputs[2]?.substring(0, 20) + '...',
+        publicInputsLength: publicInputs.length,
+        sendingToContract: minimalPublicInputs.length,
       });
       
       // CRITICAL: Use proof directly without conversion (like example app)
@@ -1543,160 +1539,8 @@ export function usePerpRouter() {
       console.log(`   Stark Prime: ${STARK_PRIME_HEX_CLOSE} (63 hex digits max)`);
       console.log(`   Safety margin: ${STARK_PRIME_DECIMAL_CLOSE - maxValueClose - 1n} values below limit`);
 
-      // BYPASS account.execute() - Manual transaction construction with no fee estimation
-      const provider = new RpcProvider({ nodeUrl: NETWORK.RPC_URL });
-      
-      // Get nonce
-      const nonce = await provider.getNonceForAddress(
-        ztarknetAccount.address,
-        'latest'
-      );
-      
-      // Get chain ID - get from provider with fallback to network default
-      let chainId: string;
-      try {
-        chainId = await provider.getChainId();
-        if (!chainId) {
-          chainId = NETWORK.CHAIN_ID;
-        }
-      } catch (error) {
-        console.warn('Failed to get chain ID from provider, using network default:', error);
-        chainId = NETWORK.CHAIN_ID;
-      }
-      
-      if (!chainId) {
-        throw new Error('Failed to get chain ID - provider returned undefined and no network default available');
-      }
-      
-      // Build transaction request - use high default values for resource bounds (skip fee estimation)
-      const transactionRequest = {
-        type: 'INVOKE' as const,
-        sender_address: ztarknetAccount.address,
-        calldata: finalCalldataForRPCClose, // Direct use - no transformations!
-        signature: [] as string[],
-        nonce: num.toHex(nonce),
-        version: '0x3' as const,
-        resource_bounds: {
-          l2_gas: {
-            max_amount: '0xffffffffffffffff', // High default - skip fee estimation
-            max_price_per_unit: '0x0',
-          },
-          l1_gas: {
-            max_amount: '0xffffffffffffffff',
-            max_price_per_unit: '0x0',
-          },
-          l1_data_gas: {
-            max_amount: '0xffffffffffffffff',
-            max_price_per_unit: '0x0',
-          },
-        },
-        tip: '0x0',
-        paymaster_data: [],
-        nonce_data_availability_mode: 'L1' as const, // RPC expects string, not number
-        fee_data_availability_mode: 'L1' as const,
-        account_deployment_data: [],
-      };
-      
-      // Calculate hash - ensure all values are defined before BigInt conversion
-      const l2MaxAmount = transactionRequest.resource_bounds.l2_gas.max_amount || '0xffffffffffffffff';
-      const l1MaxAmount = transactionRequest.resource_bounds.l1_gas.max_amount || '0xffffffffffffffff';
-      const l1DataMaxAmount = transactionRequest.resource_bounds.l1_data_gas.max_amount || '0xffffffffffffffff';
-      const tipAmount = transactionRequest.tip || '0x0';
-      
-      // Sign the transaction - pass the calls array with transaction details
-      // signTransaction internally processes calls, so we need to pass the call structure
-      const calls = [{
-        contractAddress: CONTRACTS.PERP_ROUTER,
-        entrypoint: 'close_position',
-        calldata: finalCalldataForRPCClose,
-      }];
-      
-      // signTransaction expects calls array and additional transaction details
-      // Include walletAddress and cairoVersion as required by InvocationsSignerDetails
-      const signatureResult = await ztarknetAccount.signer.signTransaction(
-        calls,
-        {
-          walletAddress: transactionRequest.sender_address,
-          cairoVersion: '1' as const,
-          nonce: BigInt(transactionRequest.nonce),
-          version: transactionRequest.version,
-          resourceBounds: {
-            l2_gas: { max_amount: BigInt(l2MaxAmount), max_price_per_unit: 0n },
-            l1_gas: { max_amount: BigInt(l1MaxAmount), max_price_per_unit: 0n },
-            l1_data_gas: { max_amount: BigInt(l1DataMaxAmount), max_price_per_unit: 0n },
-          },
-          tip: BigInt(tipAmount),
-          paymasterData: transactionRequest.paymaster_data,
-          nonceDataAvailabilityMode: 'L1' as const,
-          feeDataAvailabilityMode: 'L1' as const,
-          accountDeploymentData: transactionRequest.account_deployment_data,
-          chainId: chainId as '0x534e5f4d41494e' | '0x534e5f5345504f4c4941',
-        }
-      );
-      
-      // Convert signature to hex strings
-      // signTransaction can return either:
-      // 1. An array of BigInts/strings
-      // 2. A Signature2 object with {r, s, recovery} properties
-      let signatureArray: string[] = [];
-      
-      if (Array.isArray(signatureResult)) {
-        // Handle array case
-        signatureArray = signatureResult.map((s: any) => {
-          if (typeof s === 'bigint') {
-            return num.toHex(s);
-          }
-          if (typeof s === 'string') {
-            return s.startsWith('0x') ? s : `0x${s}`;
-          }
-          try {
-            const bigIntValue = typeof s === 'number' ? BigInt(s) : BigInt(String(s));
-            return num.toHex(bigIntValue);
-          } catch {
-            console.error('Failed to convert signature value to hex:', s, typeof s);
-            return '0x0';
-          }
-        });
-      } else if (signatureResult && typeof signatureResult === 'object') {
-        // Handle Signature2 object case: {r: BigInt, s: BigInt, recovery: number}
-        if ('r' in signatureResult && 's' in signatureResult) {
-          const r = (signatureResult as any).r;
-          const s = (signatureResult as any).s;
-          signatureArray = [
-            typeof r === 'bigint' ? num.toHex(r) : (typeof r === 'string' ? ((r as string).startsWith('0x') ? r : `0x${r}`) : num.toHex(BigInt(r))),
-            typeof s === 'bigint' ? num.toHex(s) : (typeof s === 'string' ? ((s as string).startsWith('0x') ? s : `0x${s}`) : num.toHex(BigInt(s)))
-          ];
-        } else {
-          // Fallback: try to convert the object
-          console.error('Unknown signature format:', signatureResult);
-          signatureArray = ['0x0', '0x0'];
-        }
-      } else {
-        // Single value case
-        const s: any = signatureResult;
-        if (typeof s === 'bigint') {
-          signatureArray = [num.toHex(s)];
-        } else if (typeof s === 'string') {
-          signatureArray = [s.startsWith('0x') ? s : `0x${s}`];
-        } else {
-          try {
-            const bigIntValue = typeof s === 'number' ? BigInt(s) : BigInt(String(s));
-            signatureArray = [num.toHex(bigIntValue)];
-          } catch {
-            console.error('Failed to convert signature value to hex:', s, typeof s);
-            signatureArray = ['0x0'];
-          }
-        }
-      }
-      
-      transactionRequest.signature = signatureArray;
-      
-      // Send transaction directly via provider - bypasses account.execute() entirely
-      // RPC expects all values as hex strings - transactionRequest already has everything as strings
-      // No conversion needed, just use transactionRequest directly
-      const rpcTransactionRequest = transactionRequest;
-      
-      // Log calldata size for debugging potential size limit issues
+      // Use account.execute() - it handles hash calculation and signing correctly
+      // Same approach as openPosition - ensures proper signature and transaction format
       console.log('📊 Calldata Size Check (closePosition):', {
         calldataLength: finalCalldataForRPCClose.length,
         calldataSizeBytes: JSON.stringify(finalCalldataForRPCClose).length,
@@ -1707,66 +1551,15 @@ export function usePerpRouter() {
         last10: finalCalldataForRPCClose.slice(-10),
       });
       
-      // Build the RPC request body
-      const rpcRequestBody = {
-        jsonrpc: '2.0',
-        id: Date.now(),
-        method: 'starknet_addInvokeTransaction',
-        params: {
-          invoke_transaction: rpcTransactionRequest
-        }
-      };
-      
-      // Log the raw RPC request size
-      const requestBodyString = JSON.stringify(rpcRequestBody);
-      console.log('📤 Raw RPC Request Info (closePosition):', {
-        method: rpcRequestBody.method,
-        calldataLength: rpcTransactionRequest.calldata.length,
-        transactionSizeBytes: requestBodyString.length,
-        transactionSizeKB: (requestBodyString.length / 1024).toFixed(2),
-        transactionSizeMB: (requestBodyString.length / (1024 * 1024)).toFixed(2),
-        // Log full request if it's small enough, otherwise just structure
-        fullRequestSize: requestBodyString.length,
-        requestPreview: requestBodyString.length < 5000 
-          ? rpcRequestBody 
-          : {
-              jsonrpc: rpcRequestBody.jsonrpc,
-              method: rpcRequestBody.method,
-              calldataLength: rpcTransactionRequest.calldata.length,
-              note: 'Request too large - see calldata size above'
-            }
+      // Use account.execute() - it handles nonce, signature, and transaction hash correctly
+      // This is the same approach used in openPosition which works correctly
+      const result = await ztarknetAccount.execute({
+        contractAddress: CONTRACTS.PERP_ROUTER,
+        entrypoint: 'close_position',
+        calldata: finalCalldataForRPCClose,
       });
       
-      // Send transaction via direct RPC call
-      // Use fetch to make direct RPC request since provider.rpc is not accessible
-      const rpcResponse = await fetch(NETWORK.RPC_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: requestBodyString
-      });
-      
-      if (!rpcResponse.ok) {
-        throw new Error(`RPC request failed: ${rpcResponse.status} ${rpcResponse.statusText}`);
-      }
-      
-      const rpcResult = await rpcResponse.json();
-      
-      if (rpcResult.error) {
-        // Log the full error for debugging
-        console.error('RPC Error Details:', {
-          code: rpcResult.error.code,
-          message: rpcResult.error.message,
-          data: rpcResult.error.data,
-          fullError: rpcResult.error
-        });
-        // Log what we sent for debugging
-        console.error('Transaction sent:', JSON.stringify(rpcTransactionRequest, null, 2));
-        throw new Error(`RPC error: ${rpcResult.error.message || JSON.stringify(rpcResult.error)}`);
-      }
-      
-      return { transaction_hash: rpcResult.result.transaction_hash };
+      return result;
     },
     [ztarknetAccount]
   );

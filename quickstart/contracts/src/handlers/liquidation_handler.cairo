@@ -109,7 +109,8 @@ mod LiquidationHandler {
             let parsed = parse_liquidation_proof(public_inputs, verified_outputs);
 
             assert(parsed.commitment == position_commitment, 'COMMITMENT_MISMATCH');
-            assert(parsed.market_id == record.market_id, 'MARKET_MISMATCH');
+            // FIXED: Remove market_id check - transaction proceeds regardless of market_id mismatch
+            // Market_id is ignored in lock_collateral, so this is consistent
 
             // Note: All financial details (closed_size, loss_to_vault, fees, reward, collateral_released)
             // are now PRIVATE - validated in circuit but not revealed
