@@ -70,35 +70,10 @@ export async function closePositionClient(
     const priceDecimals = MARKET_INFO[position.marketId as keyof typeof MARKET_INFO]?.decimals || 8;
     const entryPriceWei = BigInt(Math.floor(entryPriceValue * (10 ** priceDecimals)));
 
-    // Step 3: Normalize commitment (extract low 128 bits)
-    let normalizedCommitment = position.commitment.toLowerCase().trim();
-    if (!normalizedCommitment.startsWith('0x')) {
-      normalizedCommitment = '0x' + normalizedCommitment;
-    }
-
-    const LOW_128_MASK = (1n << 128n) - 1n;
-    let commitmentBigInt: bigint;
-    try {
-      commitmentBigInt = BigInt(normalizedCommitment);
-    } catch {
-      commitmentBigInt = BigInt('0x' + normalizedCommitment.replace('0x', ''));
-    }
-    const commitmentLow = commitmentBigInt & LOW_128_MASK;
-    const finalCommitment = '0x' + commitmentLow.toString(16);
-
-    // Step 4: Verify position exists on-chain
-    const positionExists = await verifyPositionOnChain(finalCommitment);
-    if (!positionExists) {
-      const fallbackExists = await verifyPositionOnChain(normalizedCommitment);
-      if (!fallbackExists) {
-        throw new Error(`Position not found on-chain. Commitment: ${finalCommitment.slice(0, 20)}...`);
-      }
-    }
-
-    // Step 5: Query locked collateral
+    // Step 3: Query locked collateral (needed for proof generation)
     const lockedCollateral = await fetchLockedCollateral(account.address, position.marketId);
 
-    // Step 6: Generate ZK proof
+    // Step 4: Generate ZK proof FIRST - this will generate the commitment in the correct format
     const now = Math.floor(Date.now() / 1000);
     const proofResult = await generateClosePositionProof({
       privateMargin: marginWei.toString(),
@@ -118,12 +93,51 @@ export async function closePositionClient(
       lockedCollateral: lockedCollateral,
     });
 
-    // Step 7: Call contract directly
+    // Step 5: Extract commitment from proof's public inputs (CRITICAL: must match what's in the proof)
+    // publicInputs format: [market_id, commitment, outcome_code, ...]
+    if (proofResult.publicInputs.length < 2) {
+      throw new Error(`Invalid public inputs: expected at least 2 elements, got ${proofResult.publicInputs.length}`);
+    }
+    
+    // Use the commitment from the proof's public inputs - this ensures it matches what the proof expects
+    const commitmentFromProof = proofResult.publicInputs[1].toLowerCase().trim();
+    console.log('📝 Using commitment from proof public inputs:', {
+      commitment: commitmentFromProof.slice(0, 20) + '...',
+      positionCommitment: position.commitment.slice(0, 20) + '...',
+      match: commitmentFromProof.toLowerCase() === position.commitment.toLowerCase(),
+    });
+
+    // Step 6: Verify position exists on-chain using the commitment from proof
+    const positionExists = await verifyPositionOnChain(commitmentFromProof);
+    if (!positionExists) {
+      // Fallback: try with position.commitment (normalized)
+      let normalizedCommitment = position.commitment.toLowerCase().trim();
+      if (!normalizedCommitment.startsWith('0x')) {
+        normalizedCommitment = '0x' + normalizedCommitment;
+      }
+      const LOW_128_MASK = (1n << 128n) - 1n;
+      let commitmentBigInt: bigint;
+      try {
+        commitmentBigInt = BigInt(normalizedCommitment);
+      } catch {
+        commitmentBigInt = BigInt('0x' + normalizedCommitment.replace('0x', ''));
+      }
+      const commitmentLow = commitmentBigInt & LOW_128_MASK;
+      const fallbackCommitment = '0x' + commitmentLow.toString(16);
+      
+      const fallbackExists = await verifyPositionOnChain(fallbackCommitment);
+      if (!fallbackExists) {
+        throw new Error(`Position not found on-chain. Commitment from proof: ${commitmentFromProof.slice(0, 20)}...`);
+      }
+      console.warn('⚠️ Position found with fallback commitment format, but proof uses different format');
+    }
+
+    // Step 7: Call contract directly - use commitment from proof to ensure match
     const tx = await callClosePositionContract(
       account,
       proofResult.proof,
       proofResult.publicInputs,
-      finalCommitment
+      commitmentFromProof  // Use commitment from proof, not from position
     );
 
     // Step 8: Wait for confirmation
