@@ -21,6 +21,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { useTradingStore } from './stores/tradingStore';
 import { MARKET_INFO, CONTRACTS } from './config/contracts';
 import { LandingPage } from './components/Landing/LandingPage';
+import { DocsPage } from './components/Docs/DocsPage';
 
 function App() {
   const [proofState, setProofState] = useState<ProofStateData>({
@@ -192,9 +193,14 @@ function App() {
     return states.indexOf(state);
   };
 
-  const [currentPage, setCurrentPage] = useState<'landing' | 'proof' | 'faucet' | 'trading' | 'portfolio'>(() => {
-    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/trade')) {
-      return 'trading';
+  const [currentPage, setCurrentPage] = useState<'landing' | 'proof' | 'faucet' | 'trading' | 'portfolio' | 'docs'>(() => {
+    if (typeof window !== 'undefined') {
+      if (window.location.pathname.startsWith('/trade')) {
+        return 'trading';
+      }
+      if (window.location.pathname === '/docs' || window.location.pathname.startsWith('/docs')) {
+        return 'docs';
+      }
     }
     return 'landing';
   });
@@ -207,6 +213,8 @@ function App() {
     if (currentPage !== 'trading') {
       if (currentPage === 'portfolio') {
         document.title = `Portfolio | CircuitX`;
+      } else if (currentPage === 'docs') {
+        document.title = `Documentation | CircuitX`;
       } else {
         document.title = `CircuitX - Private Perpetual DEX`;
       }
@@ -284,6 +292,8 @@ function App() {
     <>
       {currentPage === 'landing' ? (
         <LandingPage onStartTrading={navigateToTrading} />
+      ) : currentPage === 'docs' ? (
+        <DocsPage onNavigate={handleNavigate} />
       ) : currentPage === 'trading' ? (
         <ErrorBoundary>
           <TradingInterface onNavigate={handleNavigate} />

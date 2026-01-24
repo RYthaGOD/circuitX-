@@ -45,19 +45,34 @@ export function Header({ currentPage = 'trading', onNavigate }: HeaderProps) {
           >
             Portfolio
           </button>
+          <button
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.history.pushState({}, '', '/docs');
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }
+            }}
+            className="app-header-nav-link"
+            style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+          >
+            Docs
+          </button>
           <a 
-            href="https://github.com/YieldStark/perpl/blob/main/docs/ARCHITECTURE.md"
+            href="https://x.com/i/communities/2015047501058097323"
             target="_blank"
             rel="noopener noreferrer"
             className="app-header-nav-link"
           >
-            Docs
-          </a>
-          <a 
-            href="#" 
-            className="app-header-nav-link"
-          >
             Support
+          </a>
+          <a
+            href="https://dexscreener.com/solana/2FcRaEB4NCoUvR5NNLCrPM9iTT3pGaKTh823zjFjBAGS?id=0adabfc9&ref=trojan"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="app-header-nav-link"
+            style={{ color: '#00ff88', fontWeight: '600' }}
+          >
+            BUY $CUIT
           </a>
           <button
             onClick={() => setShowFaucet(true)}
