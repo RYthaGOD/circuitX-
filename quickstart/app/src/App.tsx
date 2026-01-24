@@ -268,6 +268,13 @@ function App() {
     setCurrentPage('trading');
   };
 
+  const navigateToDocs = () => {
+    if (typeof window !== 'undefined') {
+      window.history.pushState({}, '', '/docs');
+    }
+    setCurrentPage('docs');
+  };
+
   const handleNavigate = (page: 'trading' | 'portfolio') => {
     if (typeof window !== 'undefined') {
       window.history.pushState({}, '', '/trade');
@@ -279,6 +286,8 @@ function App() {
     const handlePopState = () => {
       if (window.location.pathname.startsWith('/trade')) {
         setCurrentPage('trading');
+      } else if (window.location.pathname === '/docs' || window.location.pathname.startsWith('/docs')) {
+        setCurrentPage('docs');
       } else {
         setCurrentPage('landing');
       }
@@ -291,16 +300,16 @@ function App() {
   return (
     <>
       {currentPage === 'landing' ? (
-        <LandingPage onStartTrading={navigateToTrading} />
+        <LandingPage onStartTrading={navigateToTrading} onNavigateToDocs={navigateToDocs} />
       ) : currentPage === 'docs' ? (
         <DocsPage onNavigate={handleNavigate} />
       ) : currentPage === 'trading' ? (
         <ErrorBoundary>
-          <TradingInterface onNavigate={handleNavigate} />
+          <TradingInterface onNavigate={handleNavigate} onNavigateToDocs={navigateToDocs} />
         </ErrorBoundary>
       ) : (
         <ErrorBoundary>
-          <Portfolio onNavigate={handleNavigate} />
+          <Portfolio onNavigate={handleNavigate} onNavigateToDocs={navigateToDocs} />
         </ErrorBoundary>
       )}
     </>

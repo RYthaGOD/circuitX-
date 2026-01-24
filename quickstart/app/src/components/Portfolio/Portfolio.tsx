@@ -174,7 +174,7 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
 
   return (
     <div className="portfolio-container">
-      <Header currentPage="portfolio" onNavigate={onNavigate} />
+      <Header currentPage="portfolio" onNavigate={onNavigate} onNavigateToDocs={onNavigateToDocs} />
       
       <div className="portfolio-content">
         <div className="portfolio-header-section">

@@ -432,7 +432,7 @@ export function TradingInterface({ onNavigate }: TradingInterfaceProps) {
 
   return (
     <div className="trading-interface-container">
-      <Header currentPage="trading" onNavigate={onNavigate} />
+      <Header currentPage="trading" onNavigate={onNavigate} onNavigateToDocs={onNavigateToDocs} />
       
       <div className="trading-interface-layout">
         {/* Top Section: Chart, Order Book, and Order Form */}

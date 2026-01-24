@@ -23,7 +23,7 @@ export function DocsPage({ onNavigate }: DocsPageProps) {
 
   return (
     <div className="docs-page">
-      <Header currentPage="trading" onNavigate={onNavigate} />
+      <Header currentPage="trading" onNavigate={onNavigate} onNavigateToDocs={undefined} />
       <div className="docs-container">
         <div className="docs-sidebar">
           <h2 className="docs-sidebar-title">Documentation</h2>

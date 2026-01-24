@@ -8,6 +8,7 @@ import '../../App.css';
 interface HeaderProps {
   currentPage?: 'trading' | 'portfolio';
   onNavigate?: (page: 'trading' | 'portfolio') => void;
+  onNavigateToDocs?: () => void;
 }
 
 export function Header({ currentPage = 'trading', onNavigate }: HeaderProps) {
@@ -47,10 +48,7 @@ export function Header({ currentPage = 'trading', onNavigate }: HeaderProps) {
           </button>
           <button
             onClick={() => {
-              if (typeof window !== 'undefined') {
-                window.history.pushState({}, '', '/docs');
-                window.dispatchEvent(new PopStateEvent('popstate'));
-              }
+              onNavigateToDocs?.();
             }}
             className="app-header-nav-link"
             style={{ background: 'none', border: 'none', cursor: 'pointer' }}

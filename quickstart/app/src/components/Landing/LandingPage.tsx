@@ -2,9 +2,10 @@ import '../../App.css';
 
 interface LandingPageProps {
   onStartTrading: () => void;
+  onNavigateToDocs?: () => void;
 }
 
-export function LandingPage({ onStartTrading }: LandingPageProps) {
+export function LandingPage({ onStartTrading, onNavigateToDocs }: LandingPageProps) {
   return (
     <div className="landing-page">
       <div className="landing-hero">
@@ -31,10 +32,7 @@ export function LandingPage({ onStartTrading }: LandingPageProps) {
             <button
               type="button"
               onClick={() => {
-                if (typeof window !== 'undefined') {
-                  window.history.pushState({}, '', '/docs');
-                  window.dispatchEvent(new PopStateEvent('popstate'));
-                }
+                onNavigateToDocs?.();
               }}
               className="landing-nav-link"
             >
