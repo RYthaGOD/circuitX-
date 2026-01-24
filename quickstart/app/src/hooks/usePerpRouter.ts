@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useTradingStore } from '../stores/tradingStore';
-import { CONTRACTS, NETWORK } from '../config/contracts';
-import { num, RpcProvider } from 'starknet';
+import { CONTRACTS } from '../config/contracts';
+import { num } from 'starknet';
 
 export function usePerpRouter() {
   const ztarknetAccount = useTradingStore((state) => state.ztarknetAccount);

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { connect, disconnect } from '@starknet-io/get-starknet';
 import { Account } from 'starknet';
 import { useTradingStore } from '../../stores/tradingStore';
-import { Wallet, LogOut } from 'lucide-react';
+// import { Wallet, LogOut } from 'lucide-react'; // Unused
 import { toast } from 'sonner';
 import { ZtarknetWalletModal } from './ZtarknetWalletModal';
 import { ZtarknetProvisionModal } from './ZtarknetProvisionModal';
@@ -78,11 +78,11 @@ export function ConnectButton() {
         return;
       }
 
-      await starknet.enable();
-
-      if (starknet.account) {
-        const ownerAddress = starknet.account.address;
-        setSepoliaAccount(starknet.account);
+      // Connect to wallet - check if account is available
+      if (starknet && 'account' in starknet && starknet.account) {
+        const account = starknet.account as Account;
+        const ownerAddress = account.address;
+        setSepoliaAccount(account);
         toast.success('Sepolia wallet connected!');
 
         const existing = loadZtarknetWallet(ownerAddress);
@@ -122,7 +122,8 @@ export function ConnectButton() {
     }
   };
 
-  const handleDisconnect = async () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _handleDisconnect = async () => {
     await disconnect();
     setSepoliaAccount(null);
     setZtarknetAccount(null);

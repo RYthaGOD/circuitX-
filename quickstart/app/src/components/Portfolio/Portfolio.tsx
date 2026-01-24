@@ -1,9 +1,9 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useTradingStore, Position } from '../../stores/tradingStore';
 import { formatYusdBalance, fetchVaultBalance, fetchLockedCollateral, fetchAvailableBalance } from '../../lib/balanceUtils';
 import { Header } from '../Layout/Header';
-import { ChevronDown, TrendingUp, TrendingDown, Wallet, Lock, DollarSign, BarChart3 } from 'lucide-react';
-import { MARKET_INFO, MARKETS, PRAGMA_ASSET_IDS } from '../../config/contracts';
+import { TrendingUp, TrendingDown, Wallet, Lock, DollarSign, BarChart3 } from 'lucide-react';
+import { MARKET_INFO, MARKETS } from '../../config/contracts';
 import { fetchPythPrice } from '../../services/pythService';
 import { calculatePnL, calculateLiquidationPrice } from '../../services/pnlService';
 import { X } from 'lucide-react';
@@ -15,11 +15,11 @@ interface PortfolioProps {
 
 interface PositionWithPnL extends Position {
   currentPrice?: number;
-  pnl?: number;
+  pnl?: string; // Changed to string to match Position interface
   pnlPercent?: number;
   roe?: number;
   positionValue?: number;
-  liquidationPrice?: number;
+  liquidationPrice?: number | undefined; // Changed from number | null to number | undefined
 }
 
 export function Portfolio({ onNavigate }: PortfolioProps) {
@@ -29,7 +29,7 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
   const isZtarknetReady = useTradingStore((state) => state.isZtarknetReady);
   
   const [activeTab, setActiveTab] = useState<'balances' | 'positions' | 'orders' | 'history'>('positions');
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('30d');
+  const [_timeRange, _setTimeRange] = useState<'7d' | '30d' | 'all'>('30d');
   const [isLoading, setIsLoading] = useState(true);
   const [vaultBalance, setVaultBalance] = useState<string>('0');
   const [lockedCollateral, setLockedCollateral] = useState<string>('0');
@@ -101,18 +101,18 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
               return {
                 ...position,
                 currentPrice,
-                pnl: pnl.pnl,
+                pnl: pnl.pnl.toString(), // Convert to string to match Position interface
                 pnlPercent: pnl.pnlPercent,
                 roe: pnl.roe,
                 positionValue,
-                liquidationPrice: liqPrice,
+                liquidationPrice: liqPrice ?? undefined, // Convert null to undefined
               };
             } catch (error) {
               console.error(`Error calculating PnL for position ${position.commitment}:`, error);
               return {
                 ...position,
                 currentPrice: undefined,
-                pnl: 0,
+                pnl: '0', // String to match Position interface
                 pnlPercent: 0,
                 roe: 0,
                 positionValue: 0,
@@ -124,8 +124,11 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
 
         setPositionsWithPnL(updatedPositions);
         
-        // Calculate total PnL
-        const total = updatedPositions.reduce((sum, pos) => sum + (pos.pnl || 0), 0);
+        // Calculate total PnL (convert string to number)
+        const total = updatedPositions.reduce((sum, pos) => {
+          const pnlValue = typeof pos.pnl === 'string' ? parseFloat(pos.pnl) : (pos.pnl || 0);
+          return sum + pnlValue;
+        }, 0);
         setTotalPnL(total);
       } catch (error) {
         console.error('Error updating positions PnL:', error);
@@ -144,7 +147,7 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
     setTotalEquity(totalEquityValue);
   }, [vaultBalance, totalPnL]);
 
-  const yusdBalance = availableBalance ? formatYusdBalance(availableBalance) : '0.00';
+  const _yusdBalance = availableBalance ? formatYusdBalance(availableBalance) : '0.00';
   const vaultBalanceFormatted = formatYusdBalance(vaultBalance);
   const lockedCollateralFormatted = formatYusdBalance(lockedCollateral);
   const availableBalanceFormatted = formatYusdBalance(availableBalance);
@@ -156,7 +159,7 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
     return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
-  const formatLargeNumber = (num: number | string): string => {
+  const _formatLargeNumber = (num: number | string): string => {
     const value = typeof num === 'string' ? parseFloat(num) : num;
     if (isNaN(value)) return '0.00';
     if (value >= 1e9) return `$${(value / 1e9).toFixed(2)}B`;
@@ -273,7 +276,11 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
               <div className="portfolio-stat-value-large">{positions.length}</div>
               <div className="portfolio-stat-subtext">
                 {positions.length > 0 
-                  ? `${positions.filter(p => (positionsWithPnL.find(p2 => p2.commitment === p.commitment)?.pnl || 0) >= 0).length} profitable`
+                  ? `${positions.filter(p => {
+                      const posPnL = positionsWithPnL.find(p2 => p2.commitment === p.commitment)?.pnl;
+                      const pnlValue = typeof posPnL === 'string' ? parseFloat(posPnL) : (posPnL || 0);
+                      return pnlValue >= 0;
+                    }).length} profitable`
                   : 'Start trading to open positions'
                 }
               </div>
@@ -332,12 +339,14 @@ export function Portfolio({ onNavigate }: PortfolioProps) {
                   ) : (
                     <div className="portfolio-positions-grid">
                       {positionsWithPnL.map((position) => {
-                        const marketInfo = MARKET_INFO[position.marketId as keyof typeof MARKET_INFO];
+                        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+                        const _marketInfo = MARKET_INFO[position.marketId as keyof typeof MARKET_INFO];
                         const size = position.size ? parseFloat(position.size) : 
                           (position.margin && position.entryPrice && position.leverage
                             ? (parseFloat(position.margin) * (position.leverage || 20)) / parseFloat(position.entryPrice)
                             : 0);
-                        const pnl = position.pnl || 0;
+                        // Convert pnl from string to number for calculations
+                        const pnl = typeof position.pnl === 'string' ? parseFloat(position.pnl) : (position.pnl || 0);
                         const pnlPercent = position.pnlPercent || 0;
                         const roe = position.roe || 0;
 

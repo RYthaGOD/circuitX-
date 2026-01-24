@@ -23,7 +23,8 @@ export function OrderBook() {
   const [currentPrice, setCurrentPrice] = useState<number | null>(null);
 
   const marketInfo = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO];
-  const decimals = marketInfo?.decimals || 8;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _decimals = marketInfo?.decimals || 8;
 
   // Generate randomized order book data based on current price
   const generateOrderBook = useCallback((basePrice: number): OrderBookData => {

@@ -10,7 +10,7 @@ import {
   createZtarknetAccount,
 } from '../../services/walletService';
 import { useTradingStore } from '../../stores/tradingStore';
-import { NETWORK } from '../../config/contracts';
+// import { NETWORK } from '../../config/contracts'; // Unused
 
 interface ZtarknetWalletModalProps {
   isOpen: boolean;

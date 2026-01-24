@@ -82,7 +82,7 @@ interface TradingState {
 
 export const useTradingStore = create<TradingState>()(
   persist(
-    (set, get) => ({
+    (set, _get) => ({
       // Initial State
       sepoliaAccount: null,
       ztarknetAccount: null,

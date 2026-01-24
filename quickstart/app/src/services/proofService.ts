@@ -7,7 +7,7 @@ import { flattenFieldsAsArray } from '../helpers/proof';
 import { bytecode, abi } from '../assets/circuit.json';
 import vkUrl from '../assets/vk.bin?url';
 // Import from shared config to ensure consistency - MUST be at top level
-import { PRAGMA_ASSET_IDS, getMarketIdFelt as getMarketIdFeltFromConfig } from '../config/contracts';
+import { getMarketIdFelt as getMarketIdFeltFromConfig } from '../config/contracts';
 
 let vkCache: Uint8Array | null = null;
 
@@ -41,6 +41,7 @@ function generateRandomSecret(): string {
  * Uses shared getMarketIdFelt function to ensure market_id matches what's stored in DataStore
  * This is CRITICAL for avoiding MARKET_DISABLED errors
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function stringToFelt252(str: string): string {
   try {
     // Use shared function for known markets - this ensures consistency
@@ -263,7 +264,7 @@ export async function generateOpenPositionProof(
   // No reduction needed - margin values are user inputs and should be reasonable
   const publicInputsArray = Array.isArray(proof.publicInputs) ? proof.publicInputs : [];
   const FELT252_MAX = BigInt('0x800000000000011000000000000000000000000000000000000000000000000');
-  const STARKNET_PRIME = FELT252_MAX + 1n; // 0x800000000000011000000000000000000000000000000000000000000000001
+  const _STARKNET_PRIME = FELT252_MAX + 1n; // 0x800000000000011000000000000000000000000000000000000000000000001
   
   // The circuit returns: pub (commitment, locked_amount, 0, 0)
   // These should be the last 4 elements of proof.publicInputs
@@ -730,7 +731,8 @@ export async function generateClosePositionProof(
   // CRITICAL: Starknet.js requires ALL calldata values to be strings with 0x prefix
   // Note: This function is kept for potential future use but currently unused
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const toHexString = (v: any, index?: number): string => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _toHexString = (v: any, index?: number): string => {
     try {
       // Handle null/undefined/empty
       if (v === null || v === undefined || v === '') {

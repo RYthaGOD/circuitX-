@@ -1,5 +1,5 @@
 import { Position } from '../stores/tradingStore';
-import { MARKET_INFO } from '../config/contracts';
+// import { MARKET_INFO } from '../config/contracts'; // Unused
 
 /**
  * Calculate PnL for a position based on entry price, current price, leverage, and collateral
@@ -67,7 +67,8 @@ export function calculateLiquidationPrice(
   }
 
   const entryPrice = parseFloat(position.entryPrice);
-  const margin = parseFloat(position.margin);
+  // Margin is checked above but not needed for liquidation price calculation
+  // Liquidation price only depends on entry price, leverage, and min margin ratio
 
   // Liquidation occurs when remaining margin = required margin
   // For long: liquidation_price = entry_price * (1 - (1/leverage) + (min_margin_ratio/100))

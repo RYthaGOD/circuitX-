@@ -63,7 +63,7 @@ export function DepositModal({
   const [amount, setAmount] = useState('');
   const [yusdBalance, setYusdBalance] = useState<string>('0');
   const [vaultBalance, setVaultBalance] = useState<string>('0');
-  const [txHash, setTxHash] = useState<string | null>(null);
+  const [_txHash, setTxHash] = useState<string | null>(null);
 
   // Fetch balances when modal opens
   useEffect(() => {

@@ -1,5 +1,5 @@
 import { RpcProvider, Contract } from 'starknet';
-import { CONTRACTS, NETWORK, getMarketIdFelt, PRAGMA_ASSET_IDS } from '../config/contracts';
+import { CONTRACTS, NETWORK, PRAGMA_ASSET_IDS } from '../config/contracts';
 import { Position } from '../stores/tradingStore';
 
 // CollateralVault ABI for get_locked_collateral
@@ -48,8 +48,8 @@ export async function fetchPositionsFromChain(
 ): Promise<Position[]> {
   try {
     const provider = new RpcProvider({ nodeUrl: NETWORK.RPC_URL });
-    const vaultContract = new Contract(VAULT_ABI, CONTRACTS.COLLATERAL_VAULT, provider);
-    const dataStoreContract = new Contract(DATA_STORE_ABI, CONTRACTS.DATA_STORE, provider);
+    const vaultContract = new Contract({ abi: VAULT_ABI, address: CONTRACTS.COLLATERAL_VAULT, providerOrAccount: provider });
+    const dataStoreContract = new Contract({ abi: DATA_STORE_ABI, address: CONTRACTS.DATA_STORE, providerOrAccount: provider });
 
     const positions: Position[] = [];
 

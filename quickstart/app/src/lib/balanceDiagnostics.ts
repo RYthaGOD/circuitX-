@@ -7,7 +7,7 @@
  */
 
 import { RpcProvider, Contract } from 'starknet';
-import { CONTRACTS, NETWORK, getMarketIdFelt } from '../config/contracts';
+import { CONTRACTS, NETWORK, getMarketIdFelt, PRAGMA_ASSET_IDS } from '../config/contracts';
 
 /**
  * Get the exact market_id format that will be sent to the contract

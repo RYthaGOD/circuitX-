@@ -119,11 +119,44 @@ export function MarketDropdown() {
               };
             } catch (error) {
               console.error(`Error fetching price for ${market.symbol}:`, error);
-              return market; // Return original market if price fetch fails
+              // Return market with all required properties
+              return {
+                ...market,
+                currentPrice: '0',
+                priceChange24h: '0',
+                priceChangePercent: '0',
+                volume24h: '0',
+                openInterest: '0',
+                fundingRate: '0',
+              } as MarketListItem;
             }
           })
         );
-        setMarkets(updatedMarkets);
+        // Ensure all markets have all required properties
+        const completeMarkets: MarketListItem[] = updatedMarkets.map(m => ({
+          marketId: m.marketId,
+          symbol: m.symbol,
+          currentPrice: ('currentPrice' in m ? m.currentPrice : '0') || '0',
+          priceChange24h: ('priceChange24h' in m ? m.priceChange24h : '0') || '0',
+          priceChangePercent: ('priceChangePercent' in m ? m.priceChangePercent : '0') || '0',
+          volume24h: ('volume24h' in m ? m.volume24h : '0') || '0',
+          openInterest: ('openInterest' in m ? m.openInterest : '0') || '0',
+          fundingRate: ('fundingRate' in m ? m.fundingRate : '0') || '0',
+          leverage: m.leverage || '20x',
+        }));
+        
+        setMarkets(completeMarkets);
+        
+        // Also update the store so App.tsx title can read from it
+        const setStoreMarkets = useTradingStore.getState().setMarkets;
+        setStoreMarkets(completeMarkets.map(m => ({
+          marketId: m.marketId,
+          symbol: m.symbol,
+          currentPrice: m.currentPrice || '0',
+          priceChange24h: m.priceChange24h || '0',
+          volume24h: m.volume24h || '0',
+          openInterest: m.openInterest || '0',
+        })));
       } catch (error) {
         console.error('Error updating market prices:', error);
       }

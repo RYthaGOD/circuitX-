@@ -21,7 +21,10 @@ const getStorageKey = (ownerAddress?: string | null) => {
 
 const derivePrivateKeyFromOwner = (ownerAddress?: string | null): string => {
   if (!ownerAddress) {
-    return num.toHex(ec.starkCurve.utils.randomPrivateKey());
+    const randomBytes = ec.starkCurve.utils.randomPrivateKey();
+    // Convert Uint8Array to hex string manually
+    const hex = '0x' + Array.from(randomBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+    return hex;
   }
 
   const normalized = ownerAddress.toLowerCase();
@@ -121,8 +124,20 @@ export function createZtarknetAccount(wallet: ZtarknetWallet): Account {
 export async function isWalletDeployed(address: string): Promise<boolean> {
   try {
     const provider = new RpcProvider({ nodeUrl: NETWORK.RPC_URL });
-    const code = await provider.getCode(address);
-    return code.bytecode.length > 0;
+    // Use getClassAt or getClassByHash instead of getCode
+    // For account contracts, check if class hash exists
+    try {
+      const classHash = await provider.getClassHashAt(address);
+      return classHash !== undefined && classHash !== '0x0';
+    } catch {
+      // Fallback: try to get class at address
+      try {
+        const contractClass = await provider.getClassAt(address);
+        return contractClass !== undefined && contractClass !== null;
+      } catch {
+        return false;
+      }
+    }
   } catch (error) {
     return false;
   }

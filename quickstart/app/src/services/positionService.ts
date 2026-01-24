@@ -30,7 +30,7 @@ const DATA_STORE_ABI = [
 export async function verifyPositionOnChain(commitment: string): Promise<boolean> {
   try {
     const provider = new RpcProvider({ nodeUrl: NETWORK.RPC_URL });
-    const dataStore = new Contract(DATA_STORE_ABI, CONTRACTS.DATA_STORE, provider);
+    const dataStore = new Contract({ abi: DATA_STORE_ABI, address: CONTRACTS.DATA_STORE, providerOrAccount: provider });
 
     // Normalize commitment to lowercase for comparison
     let normalizedCommitment = commitment.toLowerCase().trim();

@@ -38,7 +38,7 @@ export function ApprovalModal({
   const isZtarknetReady = useTradingStore((state) => state.isZtarknetReady);
   const [status, setStatus] = useState<ApprovalState>('idle');
   const [message, setMessage] = useState('');
-  const [txHash, setTxHash] = useState<string | null>(null);
+  const [_txHash, setTxHash] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -203,6 +203,10 @@ export function ApprovalModal({
     </div>
   );
 }
+
+
+
+
 
 
 

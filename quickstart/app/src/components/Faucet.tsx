@@ -42,7 +42,7 @@ interface FaucetState {
 
 export default function Faucet() {
   const [address, setAddress] = useState<string>('');
-  const [wallet, setWallet] = useState<any>(null);
+  const [_wallet, setWallet] = useState<any>(null);
   const [account, setAccount] = useState<Account | null>(null);
   const [faucetState, setFaucetState] = useState<FaucetState>({
     status: 'idle',
@@ -64,12 +64,13 @@ export default function Faucet() {
         throw new Error('No wallet found. Please install Argent or Braavos wallet.');
       }
 
-      await starknet.enable();
+      // Connect to wallet - check if account is available
       setWallet(starknet);
       
-      if (starknet.account) {
-        setAccount(starknet.account);
-        setAddress(starknet.account.address);
+      if (starknet && 'account' in starknet && starknet.account) {
+        const account = starknet.account as Account;
+        setAccount(account);
+        setAddress(account.address);
         setFaucetState({ status: 'idle', message: 'Wallet connected!' });
       }
     } catch (error: any) {
@@ -118,7 +119,7 @@ export default function Faucet() {
       setFaucetState({ status: 'requesting', message: 'Requesting 1000 yUSD...' });
 
       const provider = new RpcProvider({ nodeUrl: RPC_URL });
-      const yusdContract = new Contract(YUSD_ABI, YUSD_CONTRACT_ADDRESS, provider);
+      const yusdContract = new Contract({ abi: YUSD_ABI, address: YUSD_CONTRACT_ADDRESS, providerOrAccount: provider });
       yusdContract.connect(account);
 
       // Prepare calldata for mint_to(to: ContractAddress, amount: u256)

@@ -36,7 +36,8 @@ const MOCK_ORACLE_ABI = [
 const MOCK_ORACLE_ADDRESS = '0x00e2c5d520b31762df17b54f339c665a7c4c9fa9e81fd05c40c2e0fce3de47b9';
 
 // Cache for oracle price timestamps (to avoid unnecessary updates)
-const oraclePriceCache: Map<string, { price: number; timestamp: number }> = new Map();
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _oraclePriceCache: Map<string, { price: number; timestamp: number }> = new Map();
 const ORACLE_PRICE_STALE_THRESHOLD = 30; // Update if price is older than 30 seconds
 
 /**

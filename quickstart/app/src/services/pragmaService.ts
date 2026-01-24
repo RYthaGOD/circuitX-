@@ -4,6 +4,10 @@ const PRAGMA_API_BASE = import.meta.env.DEV
   ? '/api/pragma' 
   : 'https://api.devnet.pragma.build/node/v1';
 
+// Pragma API Key (optional - only needed for production API calls)
+// If not provided, the service will use mock data as fallback
+const PRAGMA_API_KEY = import.meta.env.VITE_PRAGMA_API_KEY || '';
+
 
 // Market to Pragma API pair mapping
 export const PRAGMA_PAIR_IDS = {
@@ -73,9 +77,9 @@ export async function fetchPragmaPrice(
       method: 'GET',
       headers: import.meta.env.DEV 
         ? {} // Proxy will add the header
-        : {
-            'x-api-key': PRAGMA_API_KEY, // Lowercase as per API docs
-          },
+        : PRAGMA_API_KEY 
+          ? { 'x-api-key': PRAGMA_API_KEY } // Only add if key is provided
+          : {}, // No API key - will likely fail but has fallback
     });
 
     if (!response.ok) {
@@ -121,9 +125,9 @@ export async function fetchPragmaHistoricalData(
       method: 'GET',
       headers: import.meta.env.DEV 
         ? {} // Proxy will add the header
-        : {
-            'x-api-key': PRAGMA_API_KEY, // Lowercase as per API docs
-          },
+        : PRAGMA_API_KEY 
+          ? { 'x-api-key': PRAGMA_API_KEY } // Only add if key is provided
+          : {}, // No API key - will likely fail but has fallback
     });
 
     if (!response.ok) {

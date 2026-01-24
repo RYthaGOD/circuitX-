@@ -16,7 +16,8 @@ export function PriceChart() {
   const chartRef = useRef<IChartApi | null>(null);
   const seriesRef = useRef<ISeriesApi<'Candlestick'> | null>(null);
   const selectedMarket = useTradingStore((state) => state.selectedMarket);
-  const setSelectedMarket = useTradingStore((state) => state.setSelectedMarket);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _setSelectedMarket = useTradingStore((state) => state.setSelectedMarket);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -291,7 +292,8 @@ export function PriceChart() {
   }, [selectedMarket]);
 
   // Available markets
-  const availableMarkets = [
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _availableMarkets = [
     MARKETS.BTC_USD,
     MARKETS.ETH_USD,
     MARKETS.STRK_USD,
@@ -299,7 +301,8 @@ export function PriceChart() {
     MARKETS.BNB_USD,
   ];
 
-  const currentMarketInfo = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO];
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _currentMarketInfo = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO];
 
   return (
     <div className="h-full flex flex-col" style={{ backgroundColor: '#0f1a1f' }}>

@@ -14,12 +14,12 @@ import initNoirC from "@noir-lang/noirc_abi";
 import initACVM from "@noir-lang/acvm_js";
 import acvm from "@noir-lang/acvm_js/web/acvm_js_bg.wasm?url";
 import noirc from "@noir-lang/noirc_abi/web/noirc_abi_wasm_bg.wasm?url";
-import Faucet from './components/Faucet';
+// import Faucet from './components/Faucet'; // Unused
 import { TradingInterface } from './components/Trading/TradingInterface';
 import { Portfolio } from './components/Portfolio/Portfolio';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useTradingStore } from './stores/tradingStore';
-import { MARKET_INFO } from './config/contracts';
+import { MARKET_INFO, CONTRACTS } from './config/contracts';
 import { LandingPage } from './components/Landing/LandingPage';
 
 function App() {
@@ -27,8 +27,8 @@ function App() {
     state: ProofState.Initial
   });
   const [vk, setVk] = useState<Uint8Array | null>(null);
-  const [inputX, setInputX] = useState<number>(5);
-  const [inputY, setInputY] = useState<number>(10);
+  const [inputX] = useState<number>(5);
+  const [inputY] = useState<number>(10);
   // Use a ref to reliably track the current state across asynchronous operations
   const currentStateRef = useRef<ProofState>(ProofState.Initial);
 
@@ -59,7 +59,8 @@ function App() {
     loadVk();
   }, []);
 
-  const resetState = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _resetState = () => {
     currentStateRef.current = ProofState.Initial;
     setProofState({ 
       state: ProofState.Initial,
@@ -96,6 +97,7 @@ function App() {
     setProofState({ state: newState, error: undefined });
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const startProcess = async () => {
     try {
       // Start the process
@@ -138,9 +140,8 @@ function App() {
       updateState(ProofState.SendingTransaction);
 
       const provider = new RpcProvider({ nodeUrl: 'https://ztarknet-madara.d.karnot.xyz' });
-      // TODO: use conract address from the result of the `make deploy-verifier` step
-      const contractAddress = '0x02048def58e122c910f80619ebab076b0ef5513550d38afdfdf2d8a1710fa7c6';
-      const verifierContract = new Contract({ abi: verifierAbi, address: contractAddress, providerOrAccount: provider });
+      // Use verifier address from config
+      const verifierContract = new Contract({ abi: verifierAbi, address: CONTRACTS.VERIFIER, providerOrAccount: provider });
       
       // Check verification
       const res = await verifierContract.verify_ultra_starknet_zk_honk_proof(callData.slice(1));
@@ -152,7 +153,8 @@ function App() {
     }
   };
 
-  const renderStateIndicator = (state: ProofState, current: ProofState) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _renderStateIndicator = (state: ProofState, current: ProofState) => {
     let status = 'pending';
     
     // If this stage is current with an error, show error state
@@ -197,16 +199,26 @@ function App() {
     return 'landing';
   });
   
-  // Update page title with current market price
+  // Update page title with current market price (real-time)
   const selectedMarket = useTradingStore((state) => state.selectedMarket);
   const markets = useTradingStore((state) => state.markets);
   
   useEffect(() => {
-    if (currentPage === 'trading') {
-      const currentMarket = markets.find((m) => m.marketId === selectedMarket);
+    if (currentPage !== 'trading') {
+      if (currentPage === 'portfolio') {
+        document.title = `Portfolio | CircuitX`;
+      } else {
+        document.title = `CircuitX - Private Perpetual DEX`;
+      }
+      return;
+    }
+
+    const updateTitle = async () => {
       const marketInfo = MARKET_INFO[selectedMarket as keyof typeof MARKET_INFO];
       const marketSymbol = marketInfo?.symbol?.split('/')[0] || 'BTC';
       
+      // First try to get price from store
+      const currentMarket = markets.find((m) => m.marketId === selectedMarket);
       if (currentMarket?.currentPrice) {
         const price = parseFloat(currentMarket.currentPrice);
         const formattedPrice = price.toLocaleString('en-US', {
@@ -214,14 +226,31 @@ function App() {
           maximumFractionDigits: 0
         });
         document.title = `${formattedPrice} | ${marketSymbol} | Circuit`;
-      } else {
+        return;
+      }
+
+      // If not in store, fetch directly from Pyth
+      try {
+        const { fetchPythPrice } = await import('./services/pythService');
+        const priceData = await fetchPythPrice(selectedMarket);
+        const price = priceData.price;
+        const formattedPrice = price.toLocaleString('en-US', {
+          minimumFractionDigits: 0,
+          maximumFractionDigits: 0
+        });
+        document.title = `${formattedPrice} | ${marketSymbol} | Circuit`;
+      } catch (error) {
+        console.warn('Failed to fetch price for title:', error);
         document.title = `91,168 | BTC | Circuit`;
       }
-    } else if (currentPage === 'portfolio') {
-      document.title = `Portfolio | CircuitX`;
-    } else {
-      document.title = `CircuitX - Private Perpetual DEX`;
-    }
+    };
+
+    // Update immediately
+    updateTitle();
+
+    // Update every 10 seconds to keep title in sync with real-time prices
+    const interval = setInterval(updateTitle, 10000);
+    return () => clearInterval(interval);
   }, [currentPage, selectedMarket, markets]);
 
   const navigateToTrading = () => {

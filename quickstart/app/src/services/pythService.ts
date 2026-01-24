@@ -12,7 +12,8 @@ export const PYTH_PRICE_FEED_IDS: Record<string, string> = {
 };
 
 // Legacy constant for backward compatibility
-const PYTH_PRICE_FEED_ID_BTC_USD = PYTH_PRICE_FEED_IDS['BTC/USD'];
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _PYTH_PRICE_FEED_ID_BTC_USD = PYTH_PRICE_FEED_IDS['BTC/USD'];
 
 export interface PythPriceData {
   price: number;
