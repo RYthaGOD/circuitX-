@@ -461,10 +461,10 @@ export function TradingInterface({ onNavigate }: TradingInterfaceProps) {
                   No open positions yet
                 </div>
               ) : (
-                <>
+                <div className="trading-positions-scroll-wrapper">
                   {/* Positions Header Row */}
                   <div 
-                    className="flex items-center gap-4 px-4 py-2 border-b text-xs font-medium"
+                    className="trading-positions-header-row flex items-center gap-4 px-4 py-2 border-b text-xs font-medium"
                     style={{
                       backgroundColor: 'transparent',
                       borderColor: 'rgba(255, 255, 255, 0.1)',
@@ -473,6 +473,7 @@ export function TradingInterface({ onNavigate }: TradingInterfaceProps) {
                       top: 0,
                       zIndex: 10,
                       flexShrink: 0,
+                      minWidth: 'max-content',
                     }}
                   >
                     <div className="min-w-[80px]">Action</div>
@@ -501,7 +502,7 @@ export function TradingInterface({ onNavigate }: TradingInterfaceProps) {
                       ALL TRADING INFO ARE PRIVATE AND VERIFIED BY ZK PROOFS
                     </p>
                   </div>
-                </>
+                </div>
               )}
             </div>
           </div>

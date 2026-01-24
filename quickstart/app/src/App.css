@@ -737,6 +737,11 @@
   overflow: visible;
 }
 
+.trading-positions-scroll-wrapper {
+  width: 100%;
+  overflow: visible;
+}
+
 .trading-positions-title {
   font-size: 12px;
   font-weight: 500;
@@ -3881,5 +3886,555 @@ button {
 
   .docs-cta {
     padding: 32px 24px;
+  }
+}
+
+/* Trading Interface Mobile Responsive */
+@media (max-width: 1024px) {
+  .trading-interface-top {
+    flex-direction: column;
+  }
+
+  .trading-interface-left {
+    width: 100%;
+    order: 1;
+  }
+
+  .orderbook-container {
+    width: 100%;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    order: 3;
+    max-height: 300px;
+  }
+
+  .trading-interface-right {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    order: 2;
+  }
+
+  .trading-chart-container {
+    flex: 0 0 40vh;
+    min-height: 300px;
+  }
+}
+
+@media (max-width: 768px) {
+  .trading-interface-container {
+    padding: 0;
+  }
+
+  .trading-interface-top {
+    padding: 0;
+  }
+
+  .trading-interface-left {
+    padding: 0 8px;
+  }
+
+  .trading-chart-container {
+    flex: 0 0 35vh;
+    min-height: 250px;
+    margin: 8px 0;
+  }
+
+  .trading-header-empty-box {
+    height: 32px;
+    margin: 8px 0;
+    width: 100%;
+  }
+
+  .trading-positions-panel {
+    margin-top: 8px;
+    padding: 8px 0;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Make positions table horizontally scrollable on mobile */
+  .trading-positions-scroll-wrapper {
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    min-width: max-content;
+  }
+
+  .trading-positions-header-row {
+    display: flex;
+    min-width: max-content;
+  }
+
+  .trading-positions-header-row > div {
+    flex-shrink: 0;
+  }
+
+  .trading-positions-list {
+    display: flex;
+    flex-direction: column;
+    min-width: max-content;
+  }
+
+  /* Position card - ensure it doesn't shrink */
+  .trading-positions-list > div {
+    min-width: max-content;
+    display: flex;
+  }
+
+  /* Position card wrapper for horizontal scroll */
+  .trading-positions-list > div {
+    min-width: max-content;
+    width: max-content;
+  }
+
+  .orderbook-container {
+    max-height: 250px;
+    order: 3;
+  }
+
+  .orderbook-content {
+    max-height: 200px;
+  }
+
+  .trading-interface-right {
+    order: 2;
+    padding: 0;
+  }
+
+  .trading-interface-right-inner {
+    padding: 12px;
+  }
+
+  .order-form-container {
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .order-form-top-controls {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .order-form-control-btn {
+    padding: 6px 12px;
+    font-size: 11px;
+    flex: 1;
+    min-width: 60px;
+  }
+
+  .order-form-type-tabs {
+    gap: 8px;
+  }
+
+  .order-form-type-tab {
+    padding: 8px 12px;
+    font-size: 12px;
+    flex: 1;
+  }
+}
+
+@media (max-width: 480px) {
+  .trading-chart-container {
+    flex: 0 0 30vh;
+    min-height: 200px;
+  }
+
+  .trading-header-empty-box {
+    height: 24px;
+    margin: 4px 0;
+  }
+
+  .trading-positions-panel {
+    margin-top: 4px;
+    padding: 4px 0;
+  }
+
+  .trading-positions-title {
+    font-size: 11px;
+    padding: 8px 12px;
+  }
+
+  .trading-positions-empty {
+    font-size: 11px;
+    padding: 24px 12px;
+  }
+
+  .orderbook-container {
+    max-height: 200px;
+  }
+
+  .orderbook-header {
+    padding: 6px 8px;
+  }
+
+  .orderbook-tabs {
+    gap: 12px;
+  }
+
+  .orderbook-tab {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .order-form-container {
+    padding: 12px;
+    gap: 10px;
+  }
+
+  .order-form-top-controls {
+    gap: 4px;
+  }
+
+  .order-form-control-btn {
+    padding: 5px 8px;
+    font-size: 10px;
+  }
+
+  .order-form-type-tabs {
+    gap: 4px;
+  }
+
+  .order-form-type-tab {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  /* Make position table headers smaller on very small screens */
+  .trading-positions-header-row > div {
+    font-size: 9px;
+    padding: 4px 2px;
+    min-width: 60px;
+  }
+
+  /* Market Dropdown Mobile */
+  .market-dropdown-button {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .market-dropdown-menu {
+    width: calc(100vw - 32px);
+    max-width: 400px;
+    left: 50% !important;
+    transform: translateX(-50%);
+  }
+
+  /* Order Form Mobile Adjustments */
+  .order-form-toggle-container {
+    margin: 8px 0;
+  }
+
+  .order-form-toggle-slider {
+    height: 36px;
+  }
+
+  .order-form-toggle-option {
+    font-size: 12px;
+  }
+
+  .order-form-input-group {
+    gap: 8px;
+  }
+
+  .order-form-input-label {
+    font-size: 11px;
+  }
+
+  .order-form-input {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+
+  .order-form-button {
+    padding: 12px;
+    font-size: 14px;
+  }
+}
+
+/* Market Dropdown Mobile */
+@media (max-width: 768px) {
+  .market-dropdown-button {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  .market-dropdown-button-logo {
+    width: 20px;
+    height: 20px;
+  }
+
+  .market-dropdown-menu {
+    max-width: calc(100vw - 16px);
+    margin: 8px;
+  }
+
+  .market-dropdown-item {
+    padding: 10px 12px;
+  }
+
+  .market-dropdown-item-symbol {
+    font-size: 13px;
+  }
+
+  .market-dropdown-item-price {
+    font-size: 12px;
+  }
+}
+
+/* Order Form Additional Mobile Styles */
+@media (max-width: 768px) {
+  .order-form-toggle-container {
+    margin: 6px 0;
+  }
+
+  .order-form-toggle-slider {
+    height: 32px;
+  }
+
+  .order-form-toggle-option {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+
+  .order-form-input-group {
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .order-form-input-label {
+    font-size: 10px;
+  }
+
+  .order-form-input {
+    font-size: 13px;
+    padding: 8px 10px;
+  }
+
+  .order-form-button {
+    padding: 10px;
+    font-size: 13px;
+  }
+
+  .order-form-leverage-selector {
+    gap: 4px;
+  }
+
+  .order-form-leverage-btn {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+
+  .order-form-size-input {
+    padding-left: 48px;
+    padding-right: 60px;
+    padding-top: 12px;
+    padding-bottom: 12px;
+    height: 44px;
+    font-size: 13px;
+  }
+
+  .order-form-size-label {
+    font-size: 11px;
+    left: 10px;
+  }
+
+  .order-form-size-dropdown {
+    font-size: 11px;
+    padding: 4px 8px;
+    right: 8px;
+  }
+
+  .order-form-slider-container {
+    gap: 6px;
+    padding: 6px 0;
+  }
+
+  .order-form-percent-input {
+    width: 48px;
+    padding: 5px 6px;
+    font-size: 11px;
+  }
+
+  .order-form-submit-btn {
+    padding: 12px 0;
+    font-size: 13px;
+  }
+
+  .order-form-account-info {
+    font-size: 11px;
+    padding: 8px 0;
+    gap: 8px;
+  }
+
+  .order-form-account-row {
+    font-size: 11px;
+  }
+}
+
+/* Price Chart Mobile */
+@media (max-width: 768px) {
+  .price-chart-container {
+    padding: 8px;
+  }
+
+  .price-chart-header {
+    padding: 8px 12px;
+  }
+
+  .price-chart-title {
+    font-size: 14px;
+  }
+}
+
+/* Order Book Mobile */
+@media (max-width: 768px) {
+  .orderbook-body {
+    padding: 4px;
+  }
+
+  .orderbook-column-headers {
+    padding: 4px 6px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .orderbook-row {
+    padding: 3px 6px;
+    font-size: 10px;
+    gap: 4px;
+  }
+
+  .orderbook-price-bid,
+  .orderbook-price-ask {
+    font-size: 10px;
+  }
+
+  .orderbook-size {
+    font-size: 10px;
+  }
+
+  .orderbook-time {
+    font-size: 9px;
+  }
+}
+
+/* Position Card Mobile - Make horizontally scrollable */
+@media (max-width: 768px) {
+  .trading-positions-scroll-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Position card container - ensure minimum width */
+  .trading-positions-list > div[class*="flex items-center"] {
+    min-width: 1200px;
+    width: max-content;
+  }
+
+  /* Individual position card cells */
+  .trading-positions-list > div > div {
+    flex-shrink: 0;
+  }
+
+  /* Position card text sizes */
+  .trading-positions-list > div {
+    font-size: 10px !important;
+    padding: 8px 4px !important;
+  }
+
+  .trading-positions-header-row {
+    min-width: 1200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .trading-positions-list > div[class*="flex items-center"] {
+    min-width: 1000px;
+  }
+
+  .trading-positions-header-row {
+    min-width: 1000px;
+  }
+
+  .trading-positions-list > div {
+    font-size: 9px !important;
+    padding: 6px 3px !important;
+  }
+
+  .trading-positions-header-row > div {
+    font-size: 8px !important;
+    padding: 2px 1px !important;
+  }
+}
+
+/* Header Mobile Responsive */
+@media (max-width: 768px) {
+  .app-header {
+    padding: 0 8px;
+    height: auto;
+    min-height: 56px;
+    flex-wrap: wrap;
+  }
+
+  .app-header-left {
+    width: 100%;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+
+  .app-header-nav {
+    gap: 16px;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: flex-start;
+    padding-top: 8px;
+  }
+
+  .app-header-nav-link {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+
+  .app-header-nav-button {
+    font-size: 11px;
+    padding: 6px 12px;
+  }
+
+  .app-header-right {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .app-header-logo-container {
+    gap: 6px;
+  }
+
+  .app-header-logo {
+    height: 20px;
+    max-width: 20px;
+  }
+
+  .app-header-brand {
+    font-size: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-header-nav {
+    gap: 8px;
+    font-size: 11px;
+  }
+
+  .app-header-nav-link {
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+
+  .app-header-brand {
+    font-size: 18px;
   }
 }
