@@ -11,6 +11,7 @@ import '../../App.css';
 
 interface PortfolioProps {
   onNavigate?: (page: 'trading' | 'portfolio') => void;
+  onNavigateToDocs?: () => void;
 }
 
 interface PositionWithPnL extends Position {
@@ -22,7 +23,7 @@ interface PositionWithPnL extends Position {
   liquidationPrice?: number | undefined; // Changed from number | null to number | undefined
 }
 
-export function Portfolio({ onNavigate }: PortfolioProps) {
+export function Portfolio({ onNavigate, onNavigateToDocs }: PortfolioProps) {
   const availableBalance = useTradingStore((state) => state.availableBalance);
   const positions = useTradingStore((state) => state.positions);
   const ztarknetAccount = useTradingStore((state) => state.ztarknetAccount);

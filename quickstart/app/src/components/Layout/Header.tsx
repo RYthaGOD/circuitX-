@@ -11,7 +11,7 @@ interface HeaderProps {
   onNavigateToDocs?: () => void;
 }
 
-export function Header({ currentPage = 'trading', onNavigate }: HeaderProps) {
+export function Header({ currentPage = 'trading', onNavigate, onNavigateToDocs }: HeaderProps) {
   const [showFaucet, setShowFaucet] = useState(false);
 
   return (

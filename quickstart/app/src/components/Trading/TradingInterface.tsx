@@ -12,9 +12,10 @@ import '../../App.css';
 
 interface TradingInterfaceProps {
   onNavigate?: (page: 'trading' | 'portfolio') => void;
+  onNavigateToDocs?: () => void;
 }
 
-export function TradingInterface({ onNavigate }: TradingInterfaceProps) {
+export function TradingInterface({ onNavigate, onNavigateToDocs }: TradingInterfaceProps) {
   const positions = useTradingStore((state) => state.positions);
   const setPositions = useTradingStore((state) => state.setPositions);
   const ztarknetAccount = useTradingStore((state) => state.ztarknetAccount);
