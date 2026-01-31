@@ -23,6 +23,6 @@ fi
 # 3. Solana Deployment
 echo "⛓️  Deploying Solana Settlement Program..."
 cd solana
-anchor deploy --provider.cluster devnet
+anchor deploy --provider.cluster https://devnet-us.magicblock.app
 
 echo "✅ Deployment Complete!"

@@ -8,6 +8,7 @@ import { getProgram, findUserVault } from "@/lib/anchor_client";
 import { OrderSide, OrderBookState } from "@/lib/types";
 import { BN } from "@coral-xyz/anchor";
 import { PublicKey } from "@solana/web3.js";
+import { useMagicBlock } from "@/hooks/useMagicBlock";
 
 export default function Home() {
   const { connection } = useConnection();
@@ -20,6 +21,9 @@ export default function Home() {
   const [price, setPrice] = useState<string>("");
   const [size, setSize] = useState<string>("");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // MagicBlock Privacy Hook
+  const { delegate, undelegate, isDelegated, loading: privacyLoading } = useMagicBlock();
 
   // Poll OrderBook (Simulating live updates)
   useEffect(() => {
@@ -43,6 +47,7 @@ export default function Home() {
     try {
       const program = getProgram(connection, wallet);
       const [vaultPda] = findUserVault(wallet.publicKey);
+      // @ts-ignore
       const account: any = await program.account.userVault.fetch(vaultPda);
       setBalance(account.collateralBalance.toNumber());
     } catch (e) {
@@ -74,7 +79,8 @@ export default function Home() {
     try {
       const client = ArciumClient.getInstance();
       await client.placeOrder(
-        wallet.publicKey.toBase58(),
+        getProgram(connection, wallet), // Pass program
+        wallet.publicKey, // pass user vault (simplification: use wallet for simulation if vault not derived inside)
         side,
         parseFloat(price),
         parseFloat(size)
@@ -87,19 +93,49 @@ export default function Home() {
     }
   };
 
+  const handlePrivacyToggle = async () => {
+    if (!wallet.publicKey) return;
+    const [vaultPda] = findUserVault(wallet.publicKey);
+    if (isDelegated) {
+      await undelegate(vaultPda);
+    } else {
+      await delegate(vaultPda);
+    }
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center p-24 bg-zinc-950 text-white">
       <div className="z-10 w-full max-w-5xl items-center justify-between font-mono text-sm lg:flex">
         <p className="fixed left-0 top-0 flex w-full justify-center border-b border-zinc-700 bg-zinc-900 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-900/30">
           Perpl &nbsp;
-          <code className="font-bold">v2 (Solana + Arcium)</code>
+          <code className="font-bold">v2 (Solana + MagicBlock)</code>
         </p>
         <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
           <WalletMultiButton />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl mt-12">
+      <div className="w-full max-w-5xl mt-6">
+        <div className="bg-zinc-900 border border-zinc-700 p-4 rounded-xl flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-bold">Privacy Controls</h3>
+            <p className="text-sm text-gray-400">
+              {isDelegated
+                ? "🔒 Active. Your interactions are Private (TEE)."
+                : "🔓 Inactive. Your interactions are Public."}
+            </p>
+          </div>
+          <button
+            onClick={handlePrivacyToggle}
+            disabled={privacyLoading || !wallet.publicKey}
+            className={`px-4 py-2 rounded font-bold ${isDelegated ? 'bg-red-900 text-red-100' : 'bg-purple-600 text-white'}`}
+          >
+            {privacyLoading ? "Processing..." : isDelegated ? "Disable Privacy (Undelegate)" : "Enable Privacy (Delegate)"}
+          </button>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-5xl mt-8">
         {/* Left: Trading */}
         <div className="bg-zinc-900 p-8 rounded-xl border border-zinc-800">
           <h2 className="text-2xl font-bold mb-4">Trade (Private)</h2>

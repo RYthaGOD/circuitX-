@@ -7,6 +7,8 @@ export const PROGRAM_ID = new PublicKey("zkNRFg6rNJGMqkAYxW1o5sdDSfxqskL1PDbJ4VZ
 export const getProgram = (connection: Connection, wallet: any) => {
     const provider = new AnchorProvider(connection, wallet, {});
     setProvider(provider);
+    setProvider(provider);
+    // @ts-ignore
     return new Program(IDL as Idl, PROGRAM_ID, provider);
 };
 

@@ -6,9 +6,9 @@
 
 ## ⚡ Why CircuitX?
 
-Traditional DEXs expose your trading strategy, size, and entry price to the world, making you vulnerable to MEV and copy-trading. CircuitX solves this by processing orders in a Trusted Execution Environment (Arcium MXE).
+Traditional DEXs expose your trading strategy, size, and entry price to the world, making you vulnerable to MEV and copy-trading. CircuitX solves this by processing orders in a Trusted Execution Environment (**MagicBlock Ephemeral Rollups**).
 
-- **Total Privacy:** Your position size, leverage, and liquidation price are never revealed on-chain.
+- **Total Privacy:** Your position size, leverage, and liquidation price are processed off-chain in TEEs.
 - **Solana Speed:** Instant settlement and low fees.
 - **Confidential Matching:** The order book and matching engine run inside a secure enclosure.
 

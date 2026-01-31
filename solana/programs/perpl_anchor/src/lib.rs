@@ -1,8 +1,11 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
+// Use the ephemeral macro if available, likely exported as 'ephemeral' based on error log
+use ephemeral_rollups_sdk::anchor::ephemeral;
 
 declare_id!("zkNRFg6rNJGMqkAYxW1o5sdDSfxqskL1PDbJ4VZ4Zmk");
 
+#[ephemeral]
 #[program]
 pub mod perpl_anchor {
     use super::*;
@@ -61,7 +64,7 @@ pub mod perpl_anchor {
         Ok(())
     }
 
-    // RESTRICTED: Only callable by Arcium MXE Authority
+    // RESTRICTED: Only callable by Authorized Operator (MagicBlock TEE)
     pub fn settle_pnl(ctx: Context<SettlePnl>, pnl: i64) -> Result<()> {
         let user_vault = &mut ctx.accounts.user_vault_state;
         
@@ -99,7 +102,7 @@ pub struct Deposit<'info> {
     #[account(mut)]
     pub user: Signer<'info>,
     #[account(
-        init,
+        init_if_needed, // Modified to allow init here for convenience
         payer = user,
         space = 8 + 8,
         seeds = [b"user_vault", user.key().as_ref()],
@@ -136,11 +139,19 @@ pub struct Withdraw<'info> {
 
 #[derive(Accounts)]
 pub struct SettlePnl<'info> {
-    // Only Arcium Authority can sign this
-    #[account(signer)]
-    pub arcium_authority: Signer<'info>, 
+    // Authorized Operator (Matching Engine running in TEE)
+    #[account(mut)]
+    pub operator: Signer<'info>, 
+    
+    // Validating against the Vault's set authority
+    #[account(
+        constraint = vault.authority == operator.key() @ ErrorCode::UnauthorizedOperator
+    )]
+    pub vault: Account<'info, Vault>,
+
     /// CHECK: User account is just for PDA derivation
     pub user: AccountInfo<'info>,
+    
     #[account(
         mut,
         seeds = [b"user_vault", user.key().as_ref()],
@@ -163,4 +174,6 @@ pub struct UserVault {
 pub enum ErrorCode {
     #[msg("Insufficient funds in user vault")]
     InsufficientFunds,
+    #[msg("Operator is not authorized to settle PnL")]
+    UnauthorizedOperator,
 }

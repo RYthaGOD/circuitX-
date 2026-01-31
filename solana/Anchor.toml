@@ -8,11 +8,14 @@ skip-lint = false
 [programs.localnet]
 perpl_anchor = "zkNRFg6rNJGMqkAYxW1o5sdDSfxqskL1PDbJ4VZ4Zmk"
 
+[programs.devnet]
+perpl_anchor = "zkNRFg6rNJGMqkAYxW1o5sdDSfxqskL1PDbJ4VZ4Zmk"
+
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "localnet"
+cluster = "https://devnet-us.magicblock.app"
 wallet = "~/.config/solana/id.json"
 
 [scripts]
