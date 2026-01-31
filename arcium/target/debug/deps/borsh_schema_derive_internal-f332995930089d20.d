@@ -1,0 +1,10 @@
+/home/craig/perpl-1/arcium/target/debug/deps/borsh_schema_derive_internal-f332995930089d20.d: /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/lib.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/helpers.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/enum_schema.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/struct_schema.rs
+
+/home/craig/perpl-1/arcium/target/debug/deps/libborsh_schema_derive_internal-f332995930089d20.rlib: /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/lib.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/helpers.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/enum_schema.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/struct_schema.rs
+
+/home/craig/perpl-1/arcium/target/debug/deps/libborsh_schema_derive_internal-f332995930089d20.rmeta: /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/lib.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/helpers.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/enum_schema.rs /home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/struct_schema.rs
+
+/home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/lib.rs:
+/home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/helpers.rs:
+/home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/enum_schema.rs:
+/home/craig/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/borsh-schema-derive-internal-0.9.3/src/struct_schema.rs:
