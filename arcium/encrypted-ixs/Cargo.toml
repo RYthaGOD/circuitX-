@@ -1,0 +1,8 @@
+[package]
+name = "perpl-encrypted-ixs"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+arcis-imports = "0.3.1" # Verified dependency for Encrypted IXS
+borsh = "0.10.3"

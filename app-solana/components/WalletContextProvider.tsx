@@ -17,7 +17,7 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
 }) => {
     // The network can be set to 'devnet', 'testnet', or 'mainnet-beta'.
     // Using localhost for our Anchor tests
-    const endpoint = "http://127.0.0.1:8899";
+    const endpoint = useMemo(() => clusterApiUrl("devnet"), []);
 
     const wallets = useMemo(
         () => [

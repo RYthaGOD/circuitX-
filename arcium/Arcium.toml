@@ -1,0 +1,6 @@
+[build]
+backend = "cerberus"
+
+[project]
+name = "perpl_arcium"
+version = "0.1.0"
